@@ -1,17 +1,22 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 // Mock all heavy dependencies before importing app
-const mockReplace = vi.fn();
-const mockHistory = {
-  location: {
-    pathname: '/welcome',
-    search: '',
-    hash: '',
-  },
-  replace: mockReplace,
-};
-
-const mockAuthMe = vi.fn();
+// vi.mock 工厂会被提升到文件顶部，工厂内引用的 mock 须经 vi.hoisted 创建
+const { mockAuthMe, mockHistory, mockReplace } = vi.hoisted(() => {
+  const mockReplace = vi.fn();
+  return {
+    mockReplace,
+    mockHistory: {
+      location: {
+        pathname: '/welcome',
+        search: '',
+        hash: '',
+      },
+      replace: mockReplace,
+    },
+    mockAuthMe: vi.fn(),
+  };
+});
 
 vi.mock('@umijs/max', () => ({
   history: mockHistory,

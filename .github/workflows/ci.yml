@@ -128,6 +128,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
       APP_KEY: base64:TmJzKa7yoynv63qdaXbvUMWDk3E9T/TPICnfLWMcpc4=
+      APP_URL: http://localhost:8080
       DB_PASSWORD: secret
       ADMIN_INITIAL_PASSWORD: admin123
       DEMO_INITIAL_PASSWORD: demo123456
@@ -149,6 +150,7 @@ jobs:
     needs: [api, web, compose-config]
     env:
       APP_KEY: base64:TmJzKa7yoynv63qdaXbvUMWDk3E9T/TPICnfLWMcpc4=
+      APP_URL: http://localhost:8080
       DB_PASSWORD: secret
       ADMIN_INITIAL_PASSWORD: admin123
       DEMO_INITIAL_PASSWORD: demo123456

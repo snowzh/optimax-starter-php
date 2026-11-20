@@ -2,7 +2,10 @@ import { message } from 'antd';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { errorConfig, TOKEN_STORAGE_KEY } from './requestErrorConfig';
 
-const mockReplace = vi.fn();
+// vi.mock 工厂会被提升到文件顶部，工厂内引用的 mock 须经 vi.hoisted 创建
+const { mockReplace } = vi.hoisted(() => ({
+  mockReplace: vi.fn(),
+}));
 
 vi.mock('antd', () => ({
   message: {
