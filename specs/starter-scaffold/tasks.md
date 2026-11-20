@@ -14,7 +14,7 @@
 - [ ] 1. 迁移与模型：users（username 无 email）、spatie 表、sanctum 表、audit_logs；模型 User/Role/Permission/AuditLog + Gate::before 兜底 super-admin
 - [ ] 2. Service 层实现 + Pest 测试：AuthService/UserService/RoleService/PermissionService + Repository；最后超管保护、自身删除保护、受保护角色保护、审计同事务；Pest 全覆盖（含各失败分支）
 - [ ] 3. 接口与错误码（按 design.md 契约）：FormRequest 校验、全局信封响应与异常渲染、路由 v1 分组 + permission 中间件、错误码登记表同步 `API_CONVENTIONS.md`、种子数据（6 权限码 + 3 角色 + 3 用户，密码 env 化）
-- [ ] 3b. Scramble OpenAPI 文档端点可访问（前端生成源头）
+- [ ] 3b. Scramble OpenAPI 文档端点可访问（`/docs/api.json`，默认仅本地环境；前端生成源头）
 
 ## 前端
 

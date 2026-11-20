@@ -42,6 +42,13 @@ return [
             'driver' => 'session',
             'provider' => 'users',
         ],
+
+        // API token 守卫：Sanctum 在容器层注册 sanctum 驱动，
+        // 显式声明 guard 使 spatie/laravel-permission 可由 guard 解析用户模型（Role::users() 等）
+        'sanctum' => [
+            'driver' => 'sanctum',
+            'provider' => 'users',
+        ],
     ],
 
     /*

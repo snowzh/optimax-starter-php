@@ -5,7 +5,6 @@ namespace Database\Factories;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 /**
  * @extends Factory<User>
@@ -13,7 +12,7 @@ use Illuminate\Support\Str;
 class UserFactory extends Factory
 {
     /**
-     * The current password being used by the factory.
+     * 工厂默认密码（测试与本地造数用）。
      */
     protected static ?string $password;
 
@@ -25,21 +24,26 @@ class UserFactory extends Factory
     public function definition(): array
     {
         return [
+            'username' => fake()->unique()->userName(),
             'name' => fake()->name(),
-            'email' => fake()->unique()->safeEmail(),
-            'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
-            'remember_token' => Str::random(10),
+            'status' => User::STATUS_ENABLED,
         ];
     }
 
-    /**
-     * Indicate that the model's email address should be unverified.
-     */
-    public function unverified(): static
+    /** 指定明文密码（模型 hashed cast 负责加密） */
+    public function withPassword(string $password): static
     {
-        return $this->state(fn (array $attributes) => [
-            'email_verified_at' => null,
+        return $this->state(fn (): array => [
+            'password' => $password,
+        ]);
+    }
+
+    /** 禁用状态的用户 */
+    public function disabled(): static
+    {
+        return $this->state(fn (): array => [
+            'status' => User::STATUS_DISABLED,
         ]);
     }
 }

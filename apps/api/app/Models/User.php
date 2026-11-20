@@ -2,20 +2,31 @@
 
 namespace App\Models;
 
-// use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Database\Factories\UserFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Hidden;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
-use Illuminate\Notifications\Notifiable;
+use Laravel\Sanctum\HasApiTokens;
+use Spatie\Permission\Traits\HasRoles;
 
-#[Fillable(['name', 'email', 'password'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['username', 'name', 'password', 'status'])]
+#[Hidden(['password'])]
 class User extends Authenticatable
 {
     /** @use HasFactory<UserFactory> */
-    use HasFactory, Notifiable;
+    use HasApiTokens, HasFactory, HasRoles;
+
+    /**
+     * spatie 权限体系的 guard 名：与 auth:sanctum 路由守卫一致，
+     * 角色/权限记录均以 guard_name = sanctum 创建与匹配。
+     */
+    protected string $guard_name = 'sanctum';
+
+    /** 状态常量：1 启用 / 0 禁用 */
+    public const STATUS_ENABLED = 1;
+
+    public const STATUS_DISABLED = 0;
 
     /**
      * Get the attributes that should be cast.
@@ -25,7 +36,8 @@ class User extends Authenticatable
     protected function casts(): array
     {
         return [
-            'email_verified_at' => 'datetime',
+            'status' => 'integer',
+            'last_login_at' => 'datetime',
             'password' => 'hashed',
         ];
     }

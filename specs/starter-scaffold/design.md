@@ -31,7 +31,7 @@ routes/api.php（v1 前缀 + auth:sanctum + permission:xxx 中间件）
 | 2001 | 401 | 未认证（token 缺失/失效/已注销） |
 | 2003 | 403 | 已认证但无所需权限 |
 | 3001 | 404 | 资源不存在（含不存在的角色/权限 id 或权限码） |
-| 3002 | 409 | 唯一性冲突（用户名/角色 slug 已存在） |
+| 3002 | 409 | 唯一性冲突（用户名/角色标识已存在） |
 | 4001 | 200 | 用户名或密码错误 |
 | 4002 | 200 | 用户已禁用 |
 | 4003 | 200 | 旧密码错误（改密场景） |
@@ -42,14 +42,14 @@ routes/api.php（v1 前缀 + auth:sanctum + permission:xxx 中间件）
 
 > 约定：`4xxx` 业务规则拒绝属「预期内业务结果」，传输层用 HTTP 200，成败看 `code`；`2xxx` 认证/权限、`1001` 校验、`3xxx` 资源态按上表映射对应 HTTP 码。
 
-**公共类型**：
+**公共类型**（spatie 以 `name` 为代码层唯一标识，中文名由 `display_name` 承载——避免双标识漂移）：
 
 ```
-Role    = { id: number, name: string, slug: string }
+Role    = { id, name: string/*标识，如 super-admin*/, display_name: string/*中文名*/ }
 User    = { id, username, name, status: 0|1, roles: Role[], direct_permissions: string[],
             last_login_at: string|null, created_at: string }            // 管理页条目
-Me      = { id, username, name, status, roles: string[]/*slug*/, permissions: string[]/*有效权限并集*/ }
-RoleItem= { id, name, slug, remark, is_protected: boolean, permissions: string[], users_count, created_at }
+Me      = { id, username, name, status, roles: string[]/*标识*/, permissions: string[]/*有效权限并集*/ }
+RoleItem= { id, name, display_name, remark, is_protected: boolean, permissions: string[], users_count, created_at }
 ```
 
 ### 认证 `/api/v1/auth`
@@ -82,9 +82,9 @@ RoleItem= { id, name, slug, remark, is_protected: boolean, permissions: string[]
 | 方法/路径 | 请求 | 成功 data | 失败码 |
 |---|---|---|---|
 | GET /（列表） | query: `page, page_size, keyword` | `{items: RoleItem[], total, page, page_size}` | 2003 |
-| POST / | `{name, slug, remark?, permissions: string[]}` | `RoleItem` | 1001 / 3001 / 3002 |
+| POST / | `{name, display_name, remark?, permissions: string[]}` | `RoleItem` | 1001 / 3001 / 3002 |
 | GET /{id} | — | `RoleItem` | 3001 |
-| PUT /{id} | `{name, remark?, permissions?}`（slug 创建后不可改） | `RoleItem` | 1001 / 3001 / 4006※ |
+| PUT /{id} | `{display_name, remark?, permissions?}`（name 标识创建后不可改） | `RoleItem` | 1001 / 3001 / 4006※ |
 | DELETE /{id} | — | `{}` | 3001 / 4006 |
 | GET /{id}/permissions | — | `{permissions: string[]}` | 3001 |
 | PUT /{id}/permissions | `{permissions: string[]}` | `{permissions}` | 1001 / 3001 / 4006※ |
@@ -93,13 +93,13 @@ RoleItem= { id, name, slug, remark, is_protected: boolean, permissions: string[]
 
 ### 权限清单 `/api/v1/permissions`（`system.permission.view`，只读）
 
-GET / → `data: [{module: string, module_name: string, permissions: [{id, name, slug}]}]`（按模块分组，供矩阵与直授组件共用）。失败码 2003。
+GET / → `data: [{module: string, module_name: string, permissions: [{id, name, display_name}]}]`（按模块分组，供矩阵与直授组件共用）。失败码 2003。
 
 ### 健康检查
 
 `GET /up`（Laravel 内建）→ 200 纯文本，部署验证信号用，不走信封。
 
-**权限码注册表（种子数据，6 码）**：`system.user.view` 查看用户、`system.user.manage` 管理用户、`system.role.view` 查看角色、`system.role.manage` 管理角色、`system.permission.view` 查看权限清单——模块：用户管理 / 角色管理 / 权限清单。**角色种子**：`super-admin` 超级管理员（is_protected，Gate::before 全通过）、`system-admin` 系统管理员（全部 6 码）、`viewer` 只读访客（全部 *.view）。**用户种子**：`admin`（super-admin，初始密码 `ADMIN_INITIAL_PASSWORD`）、`demo`（viewer，`DEMO_INITIAL_PASSWORD`）、`alice`（无角色，演示权限拒绝）。
+**权限码注册表（种子数据，6 码）**：`system.user.view` 查看用户、`system.user.manage` 管理用户、`system.role.view` 查看角色、`system.role.manage` 管理角色、`system.permission.view` 查看权限清单——模块：用户管理 / 角色管理 / 权限清单。**角色种子**：`super-admin` 超级管理员（is_protected，矩阵由种子全量同步以便前端 access 放行，Gate::before 仍兜底）、`system-admin` 系统管理员（全部 6 码）、`viewer` 只读访客（全部 *.view）。**用户种子**：`admin`（super-admin，初始密码 `ADMIN_INITIAL_PASSWORD`）、`demo`（viewer，`DEMO_INITIAL_PASSWORD`）、`alice`（无角色，演示权限拒绝）。
 
 ## 数据模型（迁移均含回滚）
 
@@ -120,7 +120,7 @@ GET / → `data: [{module: string, module_name: string, permissions: [{id, name,
 2. **防越权**：改密仅限自身（`PUT /auth/password`）；对象级检查——不存在「跨用户读写资源」类接口，用户/角色管理全部按权限点收口 ✅
 3. **审计同事务**：见上节审计点，`DB::transaction` 内写入 audit_logs ✅
 4. **敏感键脱敏**：User 资源永不返回 password/remember token；token 仅登录响应出现一次且不入日志；audit detail 快照剔除密码字段 ✅
-5. **最后超管保护**：删除/禁用用户、移除角色、修改矩阵——任何使 super-admin 持有数归零的路径统一在 Service 层前置校验（4004） ✅
+5. **最后超管保护**：删除/禁用用户、移除角色、修改矩阵——任何使 super-admin **启用状态持有数**归零的路径统一在 Service 层前置校验（4004；禁用账号无法登录，不作为可用超管计数） ✅
 6. **密钥只从 env 读取**：APP_KEY/DB_*/初始种子密码全部 env 化；`.env` 不入库不入镜像；仓库仅提交 `.env.example` ✅
 7. **种子默认密码**：`.env.example` 给出开发默认值（admin123/demo123456）并在 DEPLOYMENT.md 标注「生产必须覆盖」，CI 冒烟亦用开发默认 ✅
 8. **登录失败不泄漏存在性**：用户不存在与密码错误统一 4001 ✅
