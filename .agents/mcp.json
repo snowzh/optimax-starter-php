@@ -3,6 +3,10 @@
     "antd": {
       "command": "npx",
       "args": ["-y", "@ant-design/cli", "mcp"]
+    },
+    "laravel-boost": {
+      "command": "php",
+      "args": ["apps/api/artisan", "boost:mcp"]
     }
   }
 }
