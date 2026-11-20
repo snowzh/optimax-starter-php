@@ -17,6 +17,7 @@ nginx (entry, :80/:443)
 ```
 
 - compose 文件分环境：`compose.yaml`（dev 基础）+ `compose.prod.yaml`（生产覆盖）；镜像 tag 以 **git SHA** 为准（可追溯、可回滚）
+- **部署源分支**：staging 跟随 `dev` 分支构建验证；prod 只从 `main` 发布（`dev → main` PR 合并触发，见 `WORKFLOW.md` 分支模型）
 
 ## 镜像构建约定（多阶段，前后端各自一个 Dockerfile）
 
