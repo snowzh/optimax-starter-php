@@ -6,7 +6,7 @@
 
 ## 语言与沟通
 
-- 与用户交流使用中文；代码标识符、注释语言遵循各节约定。
+- 与用户交流使用中文；代码注释以中文为主（专有名词与标识符保留英文）。
 
 ## 目标架构
 
@@ -34,7 +34,8 @@ apps/
 2. 根 `.agents/mcp.json` 追加 `laravel-boost`：`{"command": "php", "args": ["apps/api/artisan", "boost:mcp"]}`
 3. `apps/api/composer.json` 增加 `post-update-cmd`: `@php artisan boost:update --ansi`（Boost 资源随依赖自动更新）
 4. `apps/web` 落地后：根 `.agents/mcp.json` 的 `antd` server 追加 `--version` 参数，锁定为 `apps/web` 实际 antd 版本（args 形如 `["-y", "@ant-design/cli", "mcp", "--version", "<antd版本>"]`）
-5. 回填「环境与命令」表与 `FRONTEND.md` 技术栈事实卡，并调用 `claude-md-improver` 技能复审本文件
+5. 按 `DEPLOYMENT.md` 创建 compose 拓扑与 `apps/api`/`apps/web` 多阶段 Dockerfile，CI 增加镜像构建门禁
+6. 回填「环境与命令」表与 `FRONTEND.md`/`BACKEND.md` 技术栈事实卡，并调用 `claude-md-improver` 技能复审本文件
 
 ## 后端约定（apps/api · Laravel）
 
@@ -46,8 +47,9 @@ apps/
   - 防越权：对象级权限校验（id 归属检查），防止普通用户提权
   - 最后一个超级管理员禁止删除/降级
   - 会话与密钥规则遵循框架默认安全配置，密钥只从 env 读取
-- **API 响应**：统一结构 `{ code, message, data }`。
-- **Laravel Boost（AI 基建）**：后端 AI 辅助统一走 Boost——MCP 提供数据库/路由/Artisan/日志运行时内省与官方文档检索（`search-docs`，版本感知）；AGENTS.md 中 `<laravel-boost-guidelines>` 块由 Boost 维护、勿手改；项目级约定记录到 `apps/api/.ai/rules/`（用 `record-rule` 工具写入而非手建，随 git 提交）。
+- **API 响应**：遵循 `API_CONVENTIONS.md`（统一结构、错误码分段、变更四同步）。
+- **Laravel Boost（AI 基建）**：后端 AI 辅助统一走 Boost（MCP 内省 / `search-docs` / `record-rule` 沉淀约定至 `apps/api/.ai/rules/`）；使用规范见 `BACKEND.md`；`<laravel-boost-guidelines>` 块由 Boost 维护、勿手改
+- **开发流程**：spec 任务实现遵循根目录 `BACKEND.md`（迁移先行、Service 与 Pest 同批提交、Boost 自查）
 
 ## 前端约定（apps/web · Ant Design Pro）
 
@@ -61,6 +63,7 @@ apps/
 
 ## 协作规范
 
+- 需求开发：所有需求经 `WORKFLOW.md` 的 spec 流程（specify → plan → tasks → implement ⇄ converge），产物随 git 提交至 `specs/<slug>/`
 - 提交信息：Conventional Commits（`feat:` / `fix:` / `docs:` / `refactor:` / `test:` / `chore:`），提交与分支命名遵循 `git-commit` / `conventional-branch` 技能
 - 测试：核心业务逻辑（Service 层）必须有对应 PHPUnit/Pest 测试；前端改动至少保证 lint 与构建通过
 - 分支：功能分支 `feat/xxx`、修复分支 `fix/xxx`，合并走 PR（Squash Merge、`main` 禁直接 push，流程详见 `FRONTEND.md`）
@@ -73,6 +76,10 @@ apps/
 | `CLAUDE.md` | 符号链接 → AGENTS.md（Claude Code 兼容） |
 | `design.md` | 设计语言基线（vendor 自 antd，前端 UI 工作参考，可按项目定制） |
 | `FRONTEND.md` | 前端开发流程规范（衍生自团队基座：五状态验收/E2E 证据/协作红线） |
+| `WORKFLOW.md` | Spec 驱动开发主线（specify→plan→tasks→implement⇄converge，工具无关） |
+| `BACKEND.md` | 后端开发流程（与 FRONTEND.md 对称） |
+| `API_CONVENTIONS.md` | 接口契约与联调流程（响应结构/错误码分段/变更四同步） |
+| `DEPLOYMENT.md` | Docker 前后端分离部署流程（compose 拓扑/多阶段构建/发布回滚） |
 | `.agents/skills/` | 项目级 skills 唯一投放位置（ZCode 及 agents 系工具直接扫描） |
 | `.claude/skills` | 符号链接 → `../.agents/skills`（Claude Code 兼容） |
 | `.agents/mcp.json` | MCP server 唯一配置源：`antd` 已配置；`laravel-boost` 待骨架落地追加（见「骨架落地清单」） |

@@ -14,14 +14,12 @@
 
 ## 开发流程（需求 → 合并）
 
-1. **接任务**：确认目标、完成标准、影响面、验收方式；需求类先核对 PRD 的验收项
+1. **接任务**：确认目标、完成标准、影响面、验收方式；需求从 `WORKFLOW.md` spec 流程进入——先读 `specs/<slug>/requirements.md` 的 EARS 验收标准与 `design.md` 接口契约
 2. **建分支**：`feat/<slug>` / `fix/<slug>`，尽早开 Draft PR
 3. **实现**：薄路由层 + feature 模块；新页面同步接线 route 配置与 access 权限点
 4. **联调**：直连真实 API（dev 代理转发），**禁 mock**；接口变更同步类型、调用方、错误处理与 E2E
 5. **自验**：lint（Biome + antd 规则）+ 构建 + 关键页面浏览器实操走查（五状态）
-6. **PR**：diff 精炼（约 ≤400 行）；CI 绿 + 处理 AI Review 评论 + 人工 Approve
-7. **合并**：Squash Merge → 删分支；`main` 禁止直接 push
-8. **收尾**：`git status` / `git diff --check` 干净；跟踪 CI 至绿；提交信息附验证结果
+6. **PR → 合并 → 收尾**：按 `WORKFLOW.md` 协作通用流程执行（Draft PR → AI Review → Squash Merge → 收尾检查）
 
 ## 工程红线
 
@@ -36,15 +34,7 @@
 
 每个页面必须覆盖五种状态：**loading / empty / error / disabled / permission denied**。
 
-E2E 是默认行为验收方式（实现前先写用例；不提倡实现后补写单测）。证据格式：
-
-| 字段 | 说明 |
-|---|---|
-| 场景 | 关键流程名 |
-| URL | 实操地址 |
-| SHA | 验证时的代码版本 |
-| 产物 | 截图 / 录屏 |
-| 状态 | PASS / FAIL / BLOCKED / NOT_RUN（**只有 PASS 才能表述为已验收**） |
+E2E 是默认行为验收方式（实现前先写用例；不提倡实现后补写单测）；证据格式统一见 `WORKFLOW.md` converge 节（只有 PASS 才能表述为已验收）。
 
 ## CI 前端门禁（骨架落地时配置）
 
