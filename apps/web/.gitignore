@@ -55,3 +55,5 @@ requestRecord.mock.js
 
 .vitest
 e2e-out
+# 请求录制 mock 缓存（request-record 工具残留，禁 mock 红线）
+/types/cache
