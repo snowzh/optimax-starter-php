@@ -1,0 +1,6 @@
+# ZCode 会话工作文件（计划、临时状态）
+.zcode/plans/
+
+# 依赖与构建产物（骨架搭建后按需扩充）
+node_modules/
+vendor/
