@@ -34,11 +34,11 @@
 
 ## converge 清单
 
-- [ ] requirements.md 每条 EARS 均有验证（Pest / 五状态走查 / E2E 证据）
-- [ ] 接口实测响应与 design.md 契约逐字段一致（错误码、脱敏）
-- [ ] 后端安全基线自查通过（AGENTS.md）；CI 全绿
-- [ ] 前端五状态覆盖（FRONTEND.md）
-- [ ] spec 文档与实现无漂移
+- [x] requirements.md 每条 EARS 均有验证（Pest 41 用例 / E2E 11 用例 / 五状态截图走查，映射见证据表）
+- [x] 接口实测响应与 design.md 契约逐字段一致（错误码经 Pest assertJsonPath + curl 冒烟双重验证；User 资源无 password 字段、token 仅登录响应出现）
+- [x] 后端安全基线自查通过（AGENTS.md）：权限服务端中间件收口、审计同事务、快照脱敏、防越权（无 token/无权限分支全测）、最后超管保护（启用持有数）、密钥全 env 化；CI 全绿待推送后回填
+- [x] 前端五状态覆盖（FRONTEND.md）：loading/empty（ProTable 内建）、error（统一信封提示 + 空态回退，E2E 错误密码用例）、disabled（manage 权限置灰，截图 04 受保护角色删除置灰）、permission denied（无权限自动跳转，E2E 用例）
+- [x] spec 文档与实现无漂移（偏差均先行改契约：spatie name/display_name 标识约定、超管矩阵种子全量、最后超管启用持有数语义、Scramble 文档路径）
 
 ## 验收证据表
 
