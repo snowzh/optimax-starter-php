@@ -33,6 +33,13 @@ services:
     image: optimax/api:dev
     expose:
       - "8080"
+    # 健康检查：入口 nginx 分流的 /up（busybox wget）；compose up --wait 据此等待
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/up || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
     environment:
       # 环境变量优先于 .env；密钥经 env_file / compose 注入，不入库不入镜像
       APP_ENV: ${APP_ENV:-local}

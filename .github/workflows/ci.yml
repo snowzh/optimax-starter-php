@@ -168,6 +168,13 @@ jobs:
       - name: 部署验证信号（web 200 / up 200 / 登录信封）
         run: |
           set -e
+          # 兜底轮询：即便 --wait 提前返回，/up 未就绪时重试等待 api 完成
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/up || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          test "$code" = "200"
           curl -sf -o /dev/null -w "web:%{http_code}\n" http://127.0.0.1:8080/
           curl -sf -o /dev/null -w "up:%{http_code}\n" http://127.0.0.1:8080/up
           curl -sf -X POST http://127.0.0.1:8080/api/v1/auth/login \
