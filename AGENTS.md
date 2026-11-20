@@ -18,13 +18,14 @@ apps/
 
 ## 环境与命令（骨架落地后必须回填）
 
-工具链契约：PHP ≥ 8.3 / Composer 2 / Node ≥ 20 LTS / pnpm。
+工具链契约：PHP ≥ 8.3 / Composer 2 / Node ≥ 20 LTS / pnpm / gh CLI（ssh 认证）。
 
 | 命令 | 说明 | 状态 |
 |---|---|---|
 | apps/api 安装/测试/lint | composer / pest | 待回填 |
 | apps/web 安装/启动/构建 | pnpm / umi max | 待回填 |
 | antd CLI | `npx -y @ant-design/cli info <组件>`（文档/props/token/demo 查询） | 可用 |
+| gh CLI | `gh pr/issue/run` 等 GitHub 操作（需 `gh auth` 已认证） | 可用 |
 | Laravel Boost 安装 | apps/api 内 `composer require laravel/boost --dev` + `php artisan boost:install` | 待骨架落地 |
 
 ## 骨架落地清单（Blueprint）
@@ -33,7 +34,7 @@ apps/
 2. 根 `.agents/mcp.json` 追加 `laravel-boost`：`{"command": "php", "args": ["apps/api/artisan", "boost:mcp"]}`
 3. `apps/api/composer.json` 增加 `post-update-cmd`: `@php artisan boost:update --ansi`（Boost 资源随依赖自动更新）
 4. `apps/web` 落地后：根 `.agents/mcp.json` 的 `antd` server 追加 `--version` 参数，锁定为 `apps/web` 实际 antd 版本（args 形如 `["-y", "@ant-design/cli", "mcp", "--version", "<antd版本>"]`）
-5. 回填「环境与命令」表，并调用 `claude-md-improver` 技能复审本文件
+5. 回填「环境与命令」表与 `FRONTEND.md` 技术栈事实卡，并调用 `claude-md-improver` 技能复审本文件
 
 ## 后端约定（apps/api · Laravel）
 
@@ -56,12 +57,13 @@ apps/
 - **generated-service 边界**：自动生成的 service 代码不手改，以重新生成方式覆盖
 - **Lint**：Biome + antd 规则必须通过（若环境中装有 antd-pro-reviewer agent 则调用其复审）
 - **Ant Design 资源**：写 antd 组件前先用 `antd` skill / MCP 查询 props、token、demo 与跨版本 API；视觉与设计语言以根目录 `design.md` 为基线
+- **开发流程**：需求→分支→实现→联调→验收→PR→合并全流程遵循根目录 `FRONTEND.md`（五状态验收、E2E 证据、禁 mock、Squash Merge 等红线）
 
 ## 协作规范
 
-- 提交信息：Conventional Commits（`feat:` / `fix:` / `docs:` / `refactor:` / `test:` / `chore:`）
+- 提交信息：Conventional Commits（`feat:` / `fix:` / `docs:` / `refactor:` / `test:` / `chore:`），提交与分支命名遵循 `git-commit` / `conventional-branch` 技能
 - 测试：核心业务逻辑（Service 层）必须有对应 PHPUnit/Pest 测试；前端改动至少保证 lint 与构建通过
-- 分支：功能分支 `feat/xxx`、修复分支 `fix/xxx`，合并走 MR/PR
+- 分支：功能分支 `feat/xxx`、修复分支 `fix/xxx`，合并走 PR（Squash Merge、`main` 禁直接 push，流程详见 `FRONTEND.md`）
 
 ## AI 协作层结构
 
@@ -70,6 +72,7 @@ apps/
 | `AGENTS.md` | 指令文件唯一内容源（ZCode 原生读取） |
 | `CLAUDE.md` | 符号链接 → AGENTS.md（Claude Code 兼容） |
 | `design.md` | 设计语言基线（vendor 自 antd，前端 UI 工作参考，可按项目定制） |
+| `FRONTEND.md` | 前端开发流程规范（衍生自团队基座：五状态验收/E2E 证据/协作红线） |
 | `.agents/skills/` | 项目级 skills 唯一投放位置（ZCode 及 agents 系工具直接扫描） |
 | `.claude/skills` | 符号链接 → `../.agents/skills`（Claude Code 兼容） |
 | `.agents/mcp.json` | MCP server 唯一配置源：`antd` 已配置；`laravel-boost` 待骨架落地追加（见「骨架落地清单」） |

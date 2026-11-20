@@ -7,6 +7,8 @@
 ├── claude-md-improver/     # 内置：AGENTS.md/CLAUDE.md 质量审计（衍生自官方插件，Apache-2.0）
 │   ├── SKILL.md / LICENSE / references/
 ├── antd/                   # 内置：antd CLI 使用向导（Ant Design 官方，MIT）
+├── git-commit/ 等 7 个      # vendor 自 github/awesome-copilot（MIT）：GitHub 工作流 ×5 + Docker 部署 ×2
+├── gh-fix-ci/ 等 2 个        # vendor 自 openai/skills（Apache-2.0）：CI 修复 + 威胁建模
 ├── THIRD-PARTY-NOTES.md    # 第三方技能来源与许可说明
 ├── php-pro/ ... 等 16 个   # vendor 自 jeffallan/claude-skills（MIT），见 THIRD-PARTY-NOTES.md
 └── <skill-name>/           # 新增技能照此结构
@@ -19,6 +21,8 @@
 - 前端栈：`typescript-pro`、`javascript-pro`、`react-expert`、`antd`（Ant Design 官方）
 - 质量安全：`test-master`、`code-reviewer`、`security-reviewer`、`secure-code-guardian`、`debugging-wizard`、`playwright-expert`、`code-documenter`
 - 架构工作流：`architecture-designer`、`feature-forge`
+- GitHub 工作流：`git-commit`、`conventional-branch`、`rebase-current-branch`、`github-actions-hardening`、`dependabot`
+- 部署与安全：`multi-stage-dockerfile`（多阶段构建）、`devops-rollout-plan`（发布/回滚）、`gh-fix-ci`（CI 修复）、`security-threat-model`（威胁建模）
 
 ## 三端发现机制
 

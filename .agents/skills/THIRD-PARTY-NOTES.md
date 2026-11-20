@@ -2,6 +2,33 @@
 
 本目录及仓库中部分 AI 资源 vendor 自第三方开源仓库，版权归原作者所有。
 
+## GitHub 官方 awesome-copilot 技能（7 个）
+
+- **来源仓库**：https://github.com/github/awesome-copilot （GitHub 官方策展）
+- **许可**：MIT（Copyright GitHub, Inc.）
+- **快照版本**：commit `f10fdb8`（2026-11-20）
+
+| 技能 | 用途 |
+|---|---|
+| `git-commit` | Conventional Commits 提交全流程（查 diff → 分组暂存 → 提交） |
+| `conventional-branch` | Conventional Branch 分支命名规范（含 AI agent 前缀） |
+| `rebase-current-branch` | feature 分支安全 rebase 至默认分支 + 冲突处理 |
+| `github-actions-hardening` | Actions 工作流安全加固审查（注入/提权/SHA pin/最小权限） |
+| `dependabot` | Dependabot 配置管理（composer + pnpm 双栈） |
+| `multi-stage-dockerfile` | 为任意语言/框架生成优化的多阶段 Dockerfile |
+| `devops-rollout-plan` | 发布计划（preflight/分步部署/验证信号/回滚流程） |
+
+## OpenAI 官方 skills（2 个）
+
+- **来源仓库**：https://github.com/openai/skills （仓库已归档，现行策展库为 openai/plugins，本项目所需技能仅存于此快照）
+- **许可**：Apache-2.0（每技能目录内附 LICENSE.txt 原文，Copyright OpenAI）
+- **快照版本**：commit `49f948f`
+
+| 技能 | 用途 |
+|---|---|
+| `gh-fix-ci` | gh 调试修复 Actions 失败检查（读 checks/logs → 修复计划 → 批准后实施；含 scripts/inspect_pr_checks.py） |
+| `security-threat-model` | 仓库级威胁建模（信任边界/资产/滥用路径/缓解 → Markdown 威胁模型） |
+
 ## Ant Design 官方资源（ant-design-cli）
 
 - **来源仓库**：https://github.com/ant-design/ant-design-cli （MIT，Copyright (c) 2026 Ant Design）
