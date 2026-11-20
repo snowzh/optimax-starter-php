@@ -23,6 +23,7 @@
 | requirements 评审 | 需求提出方 + 技术负责人 | EARS 标准可验证、范围边界明确 |
 | design 评审 | 技术负责人 | 契约、迁移、安全/部署影响逐项过 |
 | 合并（Approve） | 任意非作者成员 | 作者不得自批；AI Review 意见须逐条处置 |
+| dev → main 合并（发布决策） | 技术负责人 | 契约/迁移/部署影响复核后放行；触发 prod 发布 |
 | 阶段推进 | 当前阶段操作者 | 产物人工审查后再进下一阶段，agent 只产草稿 |
 
 ## 文档路由（按阶段读取）
@@ -35,12 +36,40 @@
 | 前端实现 | `FRONTEND.md`（五状态/红线） |
 | 部署/发布 | `DEPLOYMENT.md` |
 
+## 分支模型（git-flow 简化版）
+
+```
+main   生产分支：生产环境只运行此分支；禁止直接提交，仅接受 dev → main 的 PR 合并
+  ▲
+dev    开发分支：功能开发基于此分支；禁止直接提交，仅接受开发分支 → dev 的 PR 合并
+  ▲
+feat/<slug> / fix/<slug> / chore/<slug>…
+       开发分支：从 dev 切出，命名遵循 conventional-branch 技能规范；
+       完成后 Squash Merge 回 dev 并删除——不作为长期分支保留
+```
+
+### 维护规范（文档级约束，无条件生效）
+
+以上分支规则**不以托管平台能力为前提**：即使分支保护未启用（如 GitHub 私有仓库免费版），规则依然完全有效，依靠以下三层执行：
+
+1. **人**：评审角色表（上节）逐 PR 把关；发现直推 `main`/`dev` 的提交视为违规，revert 并要求走 PR
+2. **AI agent**：本文件是 agent 的必读规范——收到「直接提交/推送 main 或 dev」的指令时**应拒绝执行**，并改走开发分支 → PR 流程
+3. **AI Review**：PR 审查时核对本节规则（含「合并后删分支」「dev→main 仅发布时刻发起」）
+
+### 分支保护的落地（模板采用时按形态二选一）
+
+| 托管形态 | 落地方式 |
+|---|---|
+| GitHub 公有仓库（免费版支持保护规则） | 执行 `scripts/setup-branch-protection.sh <owner/repo>`：main/dev 保护（必须 PR、含管理员、线性历史）+ 仅 Squash 合并 + 合并后删分支 |
+| GitHub 私有仓库（免费版无保护规则） | 跳过脚本，**文档级维护规范单独生效**（见上）；团队扩张时建议升级计划开启保护，或迁移至支持保护的托管形态 |
+
 ## 协作通用流程（implement → 合并，全栈适用）
 
-1. **建分支**：`feat/<slug>` / `fix/<slug>`，尽早开 Draft PR
+1. **建分支**：从 `dev` 切出（命名遵循 `conventional-branch` 技能），尽早开 Draft PR（**目标 dev**）
 2. **PR**：diff 精炼（约 ≤400 行）；CI 全绿 + 处理 AI Review 评论 + 人工 Approve
-3. **合并**：Squash Merge → 删分支；`main` 禁止直接 push
-4. **收尾**：`git status` / `git diff --check` 干净；跟踪 CI 至绿；提交信息附验证结果
+3. **合并到 dev**：Squash Merge → 删除开发分支（不长期保留）
+4. **dev → main**：发布时刻由 dev 向 main 发 PR，合并后触发 prod 发布（见 `DEPLOYMENT.md` 发布流程）
+5. **收尾**：`git status` / `git diff --check` 干净；跟踪 CI 至绿；提交信息附验证结果
 
 `FRONTEND.md` / `BACKEND.md` 的实现细节各自展开，本节为两者共同引用的协作真相源。
 
