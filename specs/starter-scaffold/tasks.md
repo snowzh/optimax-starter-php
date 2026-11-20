@@ -4,33 +4,33 @@
 
 ## 基建
 
-- [ ] 0.1 apps/api：`composer create-project` Laravel 12 + Pint/Pest 默认 + `.env.example` 切 pgsql
-- [ ] 0.2 Laravel Boost：require + `boost:install`（agents）；`.ai/rules/` 入 git，Boost 生成的 `.mcp.json`/guidelines 按官方建议 gitignore；`composer.json` 增 `post-update-cmd: @php artisan boost:update --ansi`
-- [ ] 0.3 根 `.agents/mcp.json` 追加 `laravel-boost` server；安装 spatie/laravel-permission（guard=sanctum）+ dedoc/scramble
-- [ ] 0.4 Sail（pgsql）可选开发环境接线
+- [x] 0.1 apps/api：`composer create-project` Laravel（实际最新稳定为 13.x，技术栈事实卡按此校准）+ Pint/Pest + `.env.example` 切 pgsql
+- [x] 0.2 Laravel Boost：require + `boost:install`（agents=claude_code/codex，guidelines 同步 AGENTS.md/CLAUDE.md）；Boost 生成的 `.mcp.json`/guidelines 按契约 gitignore，`boost.json` 入 git；`composer.json` 增 `post-update-cmd: @php artisan boost:update --ansi`
+- [x] 0.3 根 `.agents/mcp.json` 追加 `laravel-boost` server；安装 spatie/laravel-permission（guard=sanctum）+ dedoc/scramble
+- [x] 0.4 Sail（pgsql，php 8.4 对齐）开发环境接线；本地原生开发复用已有 postgres:18 容器建库（optimax/secret）
 
 ## 后端（迁移先行 → Service+Pest 同批 → 接口按契约）
 
-- [ ] 1. 迁移与模型：users（username 无 email）、spatie 表、sanctum 表、audit_logs；模型 User/Role/Permission/AuditLog + Gate::before 兜底 super-admin
-- [ ] 2. Service 层实现 + Pest 测试：AuthService/UserService/RoleService/PermissionService + Repository；最后超管保护、自身删除保护、受保护角色保护、审计同事务；Pest 全覆盖（含各失败分支）
-- [ ] 3. 接口与错误码（按 design.md 契约）：FormRequest 校验、全局信封响应与异常渲染、路由 v1 分组 + permission 中间件、错误码登记表同步 `API_CONVENTIONS.md`、种子数据（6 权限码 + 3 角色 + 3 用户，密码 env 化）
-- [ ] 3b. Scramble OpenAPI 文档端点可访问（`/docs/api.json`，默认仅本地环境；前端生成源头）
+- [x] 1. 迁移与模型：users（username 无 email）、spatie 表+扩展列（display_name/module/is_protected）、sanctum 表、audit_logs；模型 User/Role/Permission/AuditLog + Gate::before 兜底 super-admin
+- [x] 2. Service 层实现 + Pest 测试：AuthService/UserService/RoleService/PermissionService + Repository 四件；最后超管保护（启用持有数）、自身删除保护、受保护角色保护、审计同事务；Pest 41 用例全绿（176 断言）
+- [x] 3. 接口与错误码（按 design.md 契约）：FormRequest 校验、全局信封响应与异常渲染、路由 v1 分组 + permission 中间件、错误码登记表同步 `API_CONVENTIONS.md`、种子数据（5 权限码 + 3 角色 + 3 用户，密码 env 化）
+- [x] 3b. Scramble OpenAPI 文档端点可访问（`/docs/api.json`，默认仅本地环境；前端生成源头）
 
 ## 前端
 
-- [ ] 4. 路由/access 接线 + 页面五状态：Ant Design Pro 官方骨架（去 mock 及 mock 依赖页）、request 信封封装（401/2001 跳登录、非 0 码提示）、登录页（仅账号 tab）、欢迎页、`/system/user`（ProTable+ModalForm+分配角色+直授权限抽屉）、`/system/role`（ProTable+矩阵弹窗分组全选/半选）、`/system/permission`（只读）；access 权限码对应；五状态覆盖
-- [ ] 5. generated-service 同步：`pnpm openapi` 由 `/api/docs` 生成 `src/services/generated/`（不手改）；生成源头与命令回填事实卡
+- [x] 4. 路由/access 接线 + 页面五状态：官方 ant-design-pro v6.0.3 完整脚手架（按用户决策最大化复用官方代码），剥离 mock/演示页/chatbot/云函数基建；request 信封封装（2001/401 清 token 跳登录、非 0 码统一提示）、登录页（仅账号表单，官方视觉）、欢迎页、`/system/user`（ProTable+ModalForm+角色+直授抽屉）、`/system/role`（ProTable+矩阵全选/半选、受保护置灰）、`/system/permission`（只读）；access 权限码对应；无权限路由自动跳欢迎页
+- [x] 5. generated-service 同步：`pnpm openapi` 由 `/docs/api.json` 生成 `src/services/generated/`（projectName=generated，不手改）
 
 ## 部署与 CI
 
-- [ ] 6. Docker：apps/api 多阶段 Dockerfile（fpm+nginx+supervisord）、apps/web 多阶段 Dockerfile、各自 `.dockerignore`；根 `compose.yaml` + `compose.prod.yaml` + 入口 nginx 配置（pg 18.7-alpine 数据卷+healthcheck）
-- [ ] 7. CI 门禁：`.github/workflows/ci.yml`（api/web/compose/E2E 四路，PR 并发取消，最小权限）；Playwright E2E 用例（实现前先写：登录成功/密码错误/禁用、无权限 403 与跳转、矩阵变更生效、直授权限生效）
+- [x] 6. Docker：apps/api 多阶段（composer 构建期 → php:8.4-fpm-alpine + nginx + supervisord）、apps/web 多阶段（node:22 pnpm → nginx:1.28 纯静态）、各自 `.dockerignore`；根 `compose.yaml` + `compose.prod.yaml` + 入口 nginx（PG 18.7-alpine，挂载 /var/lib/postgresql，healthcheck）
+- [x] 7. CI 门禁：`.github/workflows/ci.yml`（api/web/compose/e2e 四路，action SHA pin、最小权限、PR 并发取消）；Playwright E2E 11 用例（compose 网络内跑，规避宿主端口代理抖动）
+- [x] 10. E2E 关键流程 + 证据记录（下方证据表，只有 PASS 才表述为已验收）
 
 ## 文档回填与收尾
 
-- [ ] 8. 回填 `AGENTS.md` 环境与命令表；`BACKEND.md`/`FRONTEND.md` 技术栈事实卡；`DEPLOYMENT.md` MySQL→PostgreSQL 18.7 与拓扑校准；antd server `--version` 锁定
+- [ ] 8. 回填 `AGENTS.md` 环境与命令表；`BACKEND.md`/`FRONTEND.md` 技术栈事实卡（Laravel 13/antd 6.6.7/umi 4.7.34 实测版本）；`DEPLOYMENT.md` MySQL→PostgreSQL 18.7 与拓扑校准（antd server `--version` 锁定已于 627f484 完成）
 - [ ] 9. `claude-md-improver` 技能复审 `AGENTS.md`
-- [ ] 10. E2E 关键流程 + 证据记录（下方证据表，只有 PASS 才表述为已验收）
 
 ## converge 清单
 
@@ -42,13 +42,19 @@
 
 ## 验收证据表
 
+> 采集环境：compose 全栈（http://127.0.0.1:8080 入口）+ Playwright（compose 网络内）；SHA 为验证时分支 HEAD（PR 最终以合并 SHA 复核）。截图存 `specs/starter-scaffold/evidence/`。
+
 | 场景 | URL | SHA | 产物 | 状态 |
 |---|---|---|---|---|
-| 登录成功（admin）+ 菜单按权限渲染 | http://127.0.0.1:8080/user/login | 待填 | 截图 | NOT_RUN |
-| 登录失败（错误密码 4001 / 禁用 4002） | http://127.0.0.1:8080/user/login | 待填 | 截图 | NOT_RUN |
-| 无权限用户访问 /system/user（403/2003 与前端跳转） | http://127.0.0.1:8080/system/user | 待填 | 截图 | NOT_RUN |
-| 权限矩阵变更后角色用户权限生效 | http://127.0.0.1:8080/system/role | 待填 | 截图 | NOT_RUN |
-| 单用户直授权限生效（角色∪直授） | http://127.0.0.1:8080/system/user | 待填 | 截图 | NOT_RUN |
-| Pest 全绿（含最后超管/自身删除/保护角色分支） | apps/api | 待填 | 测试输出 | NOT_RUN |
-| compose 全栈冒烟（入口 8080：web 200 / login 接口通 / db healthy） | http://127.0.0.1:8080 | 待填 | 截图 | NOT_RUN |
-| CI 四路门禁全绿 | GitHub Actions | 待填 | run 链接 | NOT_RUN |
+| 登录成功（admin）+ 菜单按权限渲染 | http://127.0.0.1:8080/user/login | 12fef40 | evidence/02-welcome.png + e2e/login.spec.ts:18 | PASS |
+| 登录失败（错误密码 4001；禁用 4002 由 Pest 验证） | http://127.0.0.1:8080/user/login | 12fef40 | e2e/login.spec.ts:31 + Pest AuthTest | PASS |
+| 登出后 token 失效、受保护页自动回登录页 | http://127.0.0.1:8080/user/login | 12fef40 | e2e/login.spec.ts:47 | PASS |
+| 无权限用户访问 /system/user 自动跳转欢迎页（后端 403 由 Pest 验证） | http://127.0.0.1:8080/system/user | 12fef40 | e2e/system.spec.ts:81 + Pest 2003 分支 | PASS |
+| 权限矩阵变更后角色用户权限生效（收缩/恢复/接口 403） | apps/api | 12fef40 | Pest RoleManagementTest（矩阵即时收缩 3→0→1 + 403） | PASS |
+| 单用户直授权限生效（角色∪直授，UI 可达） | http://127.0.0.1:8080/system/user | 12fef40 | e2e/system.spec.ts:100（API 授予→alice 菜单出现→进入列表→清理） | PASS |
+| 超管用户增改删闭环（含行内删除确认） | http://127.0.0.1:8080/system/user | 12fef40 | e2e/system.spec.ts:35 | PASS |
+| 超管用户 CRUD 与角色/权限矩阵 UI（受保护置灰可见） | http://127.0.0.1:8080/system/user、/system/role | 12fef40 | evidence/03-system-user.png、04-system-role.png | PASS |
+| Pest 全绿（41 用例：最后超管 4004/自删 4005/保护角色 4006/审计落库） | apps/api | 12fef40 | `vendor/bin/pest`：41 passed / 176 assertions | PASS |
+| compose 全栈冒烟（入口 8080：web 200 / /up 200 / 登录信封 code=0 / db healthy / 种子 3 用户） | http://127.0.0.1:8080 | 12fef40 | 实操输出（四容器 Up + curl 三信号） | PASS |
+| 登录页官方视觉与文案 | http://127.0.0.1:8080/user/login | 12fef40 | evidence/01-login.png | PASS |
+| CI 四路门禁全绿 | GitHub Actions | 待推送 | run 链接（推送 Draft PR 后回填） | NOT_RUN |

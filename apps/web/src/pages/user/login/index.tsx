@@ -30,6 +30,8 @@ const getSafeRedirectUrl = (redirect: string | null): string => {
 
   try {
     const parsed = new URL(redirect, window.location.origin);
+    // 防御：回跳目标若仍是登录页（尾斜杠形态等）则回首页，避免登录自环
+    if (parsed.pathname.startsWith('/user/login')) return '/';
     if (parsed.origin !== window.location.origin) return '/';
     return `${parsed.pathname}${parsed.search}${parsed.hash}`;
   } catch {
