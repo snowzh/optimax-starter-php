@@ -2,7 +2,7 @@
 
 后续复杂项目的基座框架仓库。目标形态为 monorepo：`apps/api`（Laravel API）+ `apps/web`（Ant Design Pro 前端）。
 
-> 状态：骨架待建。本文件是脚手架实施前先行确立的规范契约，代码落地时必须遵循；落地步骤见「骨架落地清单」，完成后必须回填「环境与命令」一节。
+> 状态：**骨架已落地**（starter-scaffold，2026-11）。认证（用户名+密码 / Sanctum Bearer）、RBAC（spatie，矩阵+多角色+单用户直授）、Docker 全栈与 CI 门禁均可用；内部业务实体按 spec 流程逐步补齐。规范契约随实现持续校准（BACKEND/FRONTEND/DEPLOYMENT 各事实卡）。
 
 ## 语言与沟通
 
@@ -13,29 +13,43 @@
 ```
 apps/
 ├── api/    # Laravel 后端 API（Controller → Service → Repository 分层）
-└── web/    # Ant Design Pro 前端（UmiJS 4 + ProComponents）
+└── web/    # Ant Design Pro 前端（UmiJS max + ProComponents）
 ```
 
-## 环境与命令（骨架落地后必须回填）
+## 环境与命令（starter-scaffold 落地回填，2026-11）
 
-工具链契约：PHP ≥ 8.3 / Composer 2 / Node ≥ 20 LTS / pnpm / gh CLI（ssh 认证）。
+工具链契约：PHP ≥ 8.3（实测 8.4）/ Composer 2 / Node ≥ 22（实测 24）/ pnpm 12 / gh CLI（ssh 认证）。
 
 | 命令 | 说明 | 状态 |
 |---|---|---|
-| apps/api 安装/测试/lint | composer / pest | 待回填 |
-| apps/web 安装/启动/构建 | pnpm / umi max | 待回填 |
+| apps/api 安装 | `cd apps/api && composer install`（PG 连接见 `.env.example`） | 已回填 |
+| apps/api 测试 | `cd apps/api && vendor/bin/pest`（pgsql 测试库，41 用例基线） | 已回填 |
+| apps/api 风格 | `cd apps/api && vendor/bin/pint --test` | 已回填 |
+| apps/api 重建库 | `cd apps/api && php artisan migrate:fresh --seed` | 已回填 |
+| apps/web 安装 | `cd apps/web && pnpm install --frozen-lockfile` | 已回填 |
+| apps/web 启动 | `cd apps/web && pnpm dev`（代理 `/api` → 127.0.0.1:8000） | 已回填 |
+| apps/web 构建/校验 | `cd apps/web && pnpm build`；`pnpm lint`（Biome + tsc） | 已回填 |
+| apps/web 服务生成 | `cd apps/web && pnpm openapi`（apps/api 需在 8000 起服，产 `src/services/generated/`） | 已回填 |
+| 全栈预览 | `docker compose up -d` → http://127.0.0.1:8080（含迁移+种子；`-v` 重置数据卷） | 已回填 |
+| E2E | `docker compose --profile e2e run --rm e2e`（compose 网络内 Playwright，产物 `apps/web/e2e-out/`） | 已回填 |
 | antd CLI | `npx -y @ant-design/cli info <组件>`（文档/props/token/demo 查询） | 可用 |
 | gh CLI | `gh pr/issue/run` 等 GitHub 操作（需 `gh auth` 已认证） | 可用 |
-| Laravel Boost 安装 | apps/api 内 `composer require laravel/boost --dev` + `php artisan boost:install` | 待骨架落地 |
+| Laravel Boost | 已安装（`laravel/boost --dev` 2.10，agents=claude_code/codex；`boost:update` 挂 post-update-cmd） | 已落地 |
 
-## 骨架落地清单（Blueprint）
+### 常见陷阱（starter-scaffold 实证）
 
-1. `apps/api`：创建 Laravel 项目 + 安装 Boost（见上表），`boost:install` 选择 agents；其生成的 `.mcp.json`/guidelines 文件按官方建议 gitignore，`.ai/rules/` 必须提交
-2. 根 `.agents/mcp.json` 追加 `laravel-boost`：`{"command": "php", "args": ["apps/api/artisan", "boost:mcp"]}`
-3. `apps/api/composer.json` 增加 `post-update-cmd`: `@php artisan boost:update --ansi`（Boost 资源随依赖自动更新）
-4. `apps/web` 落地后：根 `.agents/mcp.json` 的 `antd` server 追加 `--version` 参数，锁定为 `apps/web` 实际 antd 版本（args 形如 `["-y", "@ant-design/cli", "mcp", "--version", "<antd版本>"]`）
-5. 按 `DEPLOYMENT.md` 创建 compose 拓扑与 `apps/api`/`apps/web` 多阶段 Dockerfile，CI 增加镜像构建门禁
-6. 回填「环境与命令」表与 `FRONTEND.md`/`BACKEND.md` 技术栈事实卡，并调用 `claude-md-improver` 技能复审本文件
+- **pnpm 12 构建脚本白名单**：新增依赖若带 install/postinstall 脚本，须登记 `apps/web/pnpm-workspace.yaml` 的 `allowBuilds`（遥测类依赖刻意置 `false`），否则安装直接报 `ERR_PNPM_IGNORED_BUILDS`
+- **E2E 必须走 compose 网络**：宿主直连 docker 端口代理（chromium 高并发下）存在连接抖动，Playwright 统一经 `--profile e2e` 在网络内直连 `http://nginx`
+
+
+## 骨架落地清单（Blueprint，✅ 已随 starter-scaffold 全部完成）
+
+1. ✅ `apps/api`：Laravel 13 + Boost（agents=claude_code/codex）；其生成的 `.mcp.json`/guidelines 文件按官方建议 gitignore，`boost.json`/`.ai/rules/` 提交
+2. ✅ 根 `.agents/mcp.json` 已追加 `laravel-boost`：`{"command": "php", "args": ["apps/api/artisan", "boost:mcp"]}`
+3. ✅ `apps/api/composer.json` 已含 `post-update-cmd`: `@php artisan boost:update --ansi`
+4. ✅ 根 `.agents/mcp.json` 的 `antd` server 已锁 `--version 6.6.7`（apps/web 实际 antd 版本）
+5. ✅ compose 拓扑 + `apps/api`/`apps/web` 多阶段 Dockerfile + CI 镜像构建门禁（PG 18.7）
+6. ✅ 「环境与命令」表与 `FRONTEND.md`/`BACKEND.md`/`DEPLOYMENT.md` 事实卡已回填并经 `claude-md-improver` 复审
 
 ## 后端约定（apps/api · Laravel）
 
@@ -82,7 +96,7 @@ apps/
 | `DEPLOYMENT.md` | Docker 前后端分离部署流程（compose 拓扑/多阶段构建/发布回滚） |
 | `.agents/skills/` | 项目级 skills 唯一投放位置（ZCode 及 agents 系工具直接扫描） |
 | `.claude/skills` | 符号链接 → `../.agents/skills`（Claude Code 兼容） |
-| `.agents/mcp.json` | MCP server 唯一配置源：`antd` 已配置；`laravel-boost` 待骨架落地追加（见「骨架落地清单」） |
+| `.agents/mcp.json` | MCP server 唯一配置源：`antd`（已锁 `--version 6.6.7`）+ `laravel-boost`（`php apps/api/artisan boost:mcp`）均已配置 |
 | `.mcp.json` | 符号链接 → `.agents/mcp.json`（Claude Code 兼容） |
 | `apps/api/.ai/rules/` | Boost 项目规则：按路径作用域的团队约定（骨架落地启用，随 git 提交） |
 

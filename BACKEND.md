@@ -2,15 +2,20 @@
 
 > 与 `FRONTEND.md` 对称的后端执行规范；需求经 `WORKFLOW.md` 的 spec 流程进入实现。骨架落地前作为规范契约，落地后随实现校准。
 
-## 技术栈事实卡（骨架落地时校准）
+## 技术栈事实卡（starter-scaffold 落地校准，2026-11）
 
 | 项 | 约定 |
 |---|---|
-| 框架 | Laravel（PHP ≥ 8.3） |
-| 测试 | Pest（Service 层强制覆盖） |
-| 代码风格 | Laravel Pint |
-| 开发环境 | Laravel Sail（Boost guidelines 随包下发） |
-| AI 基建 | Laravel Boost（MCP / `.ai/rules`，见 AGENTS.md 蓝图） |
+| 框架 | Laravel 13.43（PHP ≥ 8.3；本地工具链 PHP 8.4） |
+| 数据库 | PostgreSQL 18.7（compose 锁 `postgres:18.7-alpine`） |
+| 测试 | Pest 5（Service 层强制覆盖；基线 41 用例见 `specs/starter-scaffold/`） |
+| 代码风格 | Laravel Pint（`vendor/bin/pint --test`，CI 门禁） |
+| 权限 | spatie/laravel-permission 8.5（guard=`sanctum`；超管 Gate::before 兜底） |
+| 认证 | Laravel Sanctum Bearer Token |
+| 开发环境 | 原生 PHP + 本地 PG（`127.0.0.1:5432`，optimax/secret），或 Laravel Sail（`apps/api/compose.yaml`，php 8.4 镜像） |
+| AI 基建 | Laravel Boost 2.10（MCP / `.ai/rules`；`boost:update` 挂 `post-update-cmd`） |
+| 接口文档 | dedoc/scramble → `/docs/api.json`（OpenAPI 3.1，默认仅本地环境；前端生成源头） |
+| 统一信封 | `App\Support\ApiResponse`：`{code, message, data}`（错误码登记见 `API_CONVENTIONS.md`） |
 
 ## 开发流程（spec tasks → 合并）
 

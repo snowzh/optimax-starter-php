@@ -1,0 +1,120 @@
+# Optimax Starter · 基础拓扑（dev 全栈预览 / CI 镜像构建检查）
+# 生产覆盖见 compose.prod.yaml；本地 API 开发用 apps/api 的 Sail（compose.yaml）
+# 分环境说明与环境变量清单见 DEPLOYMENT.md
+
+services:
+  # 单一入口：/api/* 与 /up → api；其余 → web
+  nginx:
+    image: nginx:1.28-alpine
+    ports:
+      - "8080:80"
+    volumes:
+      - ./deploy/nginx/entry.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - web
+      - api
+    networks:
+      - optimax
+
+  # 前端静态镜像（多阶段构建，见 apps/web/Dockerfile）
+  web:
+    build:
+      context: ./apps/web
+    image: optimax/web:dev
+    expose:
+      - "80"
+    networks:
+      - optimax
+
+  # 后端 php-fpm + nginx 单容器（多阶段构建，见 apps/api/Dockerfile）
+  api:
+    build:
+      context: ./apps/api
+    image: optimax/api:dev
+    expose:
+      - "8080"
+    # 健康检查：入口 nginx 分流的 /up（busybox wget）；compose up --wait 据此等待
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1:8080/up || exit 1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 10s
+    environment:
+      # 环境变量优先于 .env；密钥经 env_file / compose 注入，不入库不入镜像
+      APP_ENV: ${APP_ENV:-local}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_KEY: ${APP_KEY:?请在 .env 设置 APP_KEY}
+      APP_URL: ${APP_URL:-http://localhost:8080}
+      DB_CONNECTION: pgsql
+      DB_HOST: db
+      DB_PORT: "5432"
+      DB_DATABASE: ${DB_DATABASE:-optimax_starter}
+      DB_USERNAME: ${DB_USERNAME:-optimax}
+      DB_PASSWORD: ${DB_PASSWORD:?请在 .env 设置 DB_PASSWORD}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-debug}
+      # 容器启动时执行迁移（本地全栈预览默认开启）
+      MIGRATE_ON_START: ${MIGRATE_ON_START:-true}
+      # 联调/E2E 需要种子账号；生产默认关闭（首启手动 db:seed，避免重置线上矩阵）
+      SEED_ON_START: ${SEED_ON_START:-true}
+      # 种子初始密码（生产必须覆盖）
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-admin123}
+      DEMO_INITIAL_PASSWORD: ${DEMO_INITIAL_PASSWORD:-demo123456}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - optimax
+
+  # PostgreSQL 18.7（锁定版本，禁 latest）
+  db:
+    image: postgres:18.7-alpine
+    environment:
+      POSTGRES_DB: ${DB_DATABASE:-optimax_starter}
+      POSTGRES_USER: ${DB_USERNAME:-optimax}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?请在 .env 设置 DB_PASSWORD}
+    volumes:
+      # PG 18+ 官方建议：单挂载 /var/lib/postgresql（便于 pg_upgrade --link）
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-optimax} -d ${DB_DATABASE:-optimax_starter}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - optimax
+
+  # E2E 执行器（--profile e2e）：官方 Playwright 镜像在 compose 网络内直连入口 nginx，
+  # 规避宿主端口代理的连接抖动；证据产物落 apps/web/e2e-out
+  # 用法：docker compose --profile e2e run --rm e2e
+  e2e:
+    image: mcr.microsoft.com/playwright:v1.65.1
+    profiles: [e2e]
+    working_dir: /work
+    depends_on:
+      - nginx
+      - api
+    environment:
+      E2E_BASE_URL: http://nginx
+    volumes:
+      - ./apps/web/e2e:/work/e2e:ro
+      - ./apps/web/playwright.config.ts:/work/playwright.config.ts:ro
+      - ./apps/web/e2e-out:/work/e2e-out
+    command:
+      - sh
+      - -c
+      - |
+        echo '{"name":"optimax-e2e","private":true}' > /work/package.json
+        npm install --no-audit --no-fund --loglevel=error @playwright/test@1.65.1
+        ./node_modules/.bin/playwright test --reporter=line
+    networks:
+      - optimax
+
+networks:
+  optimax:
+    driver: bridge
+
+volumes:
+  pgdata:
+    driver: local

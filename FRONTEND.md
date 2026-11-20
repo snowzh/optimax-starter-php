@@ -2,15 +2,19 @@
 
 > 衍生自团队基座 `wherexml/optimax-starter` 与 `wherexml/optimax-team/spec` 规范库（团队内部资料），按本项目技术栈（UmiJS 4 + ProComponents）改写。骨架落地前作为规范契约，落地后随实现校准。
 
-## 技术栈事实卡（骨架落地时校准）
+## 技术栈事实卡（starter-scaffold 落地校准，2026-11）
 
 | 项 | 约定 |
 |---|---|
-| 框架 | Ant Design Pro（UmiJS 4，React 18+） |
-| 组件 | ProComponents 优先（ProTable / ProForm / ModalForm） |
-| 请求 | 统一 request 封装（app 运行时配置） |
-| 状态 | 服务端数据走查询缓存（useRequest 等）；全局态克制 |
-| 包管理 | pnpm |
+| 框架 | Ant Design Pro v6.0.3 官方脚手架（`@umijs/max` 4.7.34 + Utoo pack 1.6，React 19） |
+| UI | antd 6.6.7 + ProComponents 3（ProTable / ProForm / ModalForm 优先） |
+| 请求 | umi request 统一封装（`src/requestErrorConfig.ts`：信封 errorThrower + Bearer 拦截 + 2001/401 清 token 跳登录） |
+| 服务层 | `pnpm openapi` 由 apps/api `/docs/api.json` 生成 `src/services/generated/`（不手改） |
+| 状态 | initialState + model 插件（服务端数据由 ProTable/useRequest 托管，全局态克制） |
+| 包管理 | pnpm 12（构建脚本白名单见 `pnpm-workspace.yaml` 的 allowBuilds） |
+| Lint | Biome 2.6（官方脚手架自带 `biome.json`；`pnpm lint` = biome + tsc） |
+| 单测 | Vitest 5（浏览器模式，`@vitest/browser-playwright` + chromium） |
+| E2E | Playwright 1.65（`docker compose --profile e2e run --rm e2e`，compose 网络内直连入口） |
 
 ## 开发流程（需求 → 合并）
 
