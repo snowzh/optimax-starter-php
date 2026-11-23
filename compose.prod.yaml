@@ -22,6 +22,13 @@ services:
       APP_KEY: ${APP_KEY:?请在 .env 设置 APP_KEY}
       APP_URL: ${APP_URL:?请在 .env 设置 APP_URL}
       DB_HOST: db
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+      CACHE_STORE: ${CACHE_STORE:-redis}
+      # predis 纯 PHP 客户端（覆盖框架默认 phpredis，镜像无该扩展）
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?生产必须设置 Redis 密码}
       MIGRATE_ON_START: ${MIGRATE_ON_START:-true}
       SEED_ON_START: ${SEED_ON_START:-false}
       LOG_CHANNEL: stderr
@@ -30,6 +37,16 @@ services:
       DEMO_INITIAL_PASSWORD: ${DEMO_INITIAL_PASSWORD:?生产必须覆盖演示账号初始密码}
       # 覆盖基座 compose 的联调放宽值，生产回落默认 20 次/分（防爆破基线）
       LOGIN_RATE_LIMIT_PER_MIN: ${LOGIN_RATE_LIMIT_PER_MIN:-20}
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  # 生产 Redis：密码必填（基座 compose 的 ${VAR:?} 同样生效），持久化见 DEPLOYMENT.md
+  redis:
+    restart: unless-stopped
+    volumes:
+      - redisdata:/data
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\" --appendonly yes"]
 
   db:
     restart: unless-stopped
@@ -37,3 +54,8 @@ services:
       interval: 10s
       timeout: 5s
       retries: 12
+
+volumes:
+  # 生产 Redis 任务持久化（appendonly）；基座 compose 不挂此卷（任务可重建）
+  redisdata:
+    driver: local

@@ -7,15 +7,18 @@
 | 环境 | 方式 | 说明 |
 |---|---|---|
 | dev（API 开发） | 原生 PHP 8.4 + 本地 PG 5432，或 Laravel Sail（`apps/api/compose.yaml`，php 8.4 + pgsql 18.7） | API 侧开发环境 |
-| dev（全栈预览 / E2E） | 根 `compose.yaml`：入口 nginx `:8080` 分流 → web/api/db；`docker compose --profile e2e run --rm e2e` 跑 Playwright（网络内直连入口，规避宿主端口代理抖动） | 一键全栈冒烟与 E2E 取证 |
+| dev（全栈预览 / E2E） | 根 `compose.yaml`：入口 nginx `:8080` 分流 → web/api/db/redis；`docker compose --profile e2e run --rm e2e` 跑 Playwright（网络内直连入口，规避宿主端口代理抖动） | 一键全栈冒烟与 E2E 取证 |
 | staging | 与 prod 同构（`compose.prod.yaml` 缩配资源） | 发布必经验证场：E2E 抽查与契约比对在此执行，全绿才进 prod |
-| prod | `docker compose -f compose.yaml -f compose.prod.yaml up -d`：入口 nginx `:80` 分流 → `web`（静态镜像）/ `api`（php-fpm+nginx 单容器镜像）；`db` = **PostgreSQL 18.7**；按需 `redis` | 前后端分离：镜像独立构建、独立发布、可独立回滚 |
+| prod | `docker compose -f compose.yaml -f compose.prod.yaml up -d`：入口 nginx `:80` 分流 → `web`（静态镜像）/ `api`（php-fpm+nginx+queue-worker 单容器镜像）；`db` = **PostgreSQL 18.7**；`redis` = **7.4-alpine**（必设密码） | 前后端分离：镜像独立构建、独立发布、可独立回滚 |
 
 ```
 nginx (entry, dev :8080 / prod :80, TLS 由部署方接入)
 ├── /api/*、/up → api:8080（容器内 nginx → php-fpm）
 └── /*          → web:80（nginx + 纯静态产物，SPA 回退）
 db: postgres:18.7-alpine（healthcheck=pg_isready，数据卷挂 /var/lib/postgresql——PG18 官方建议挂载点）
+redis: redis:7.4-alpine（healthcheck=auth PING；队列驱动 + 限流/缓存计数，
+     dev 不挂卷（任务可重建）；prod 挂 redisdata 开 appendonly——任务跨重启不丢）
+api 容器 supervisord：php-fpm + nginx + queue-worker（queue:work redis，--max-time 限时自愈）
 e2e（--profile e2e）：mcr.microsoft.com/playwright 镜像，网络内直连 http://nginx
 ```
 
@@ -39,6 +42,8 @@ e2e（--profile e2e）：mcr.microsoft.com/playwright 镜像，网络内直连 h
 - 环境变量经 compose `environment` 注入；compose 层必填项用 `${VAR:?}` 硬校验（缺配即拒绝起栈）；仓库只提交 `.env.example`（根目录，compose 变量清单）
 - **secrets 红线**：任何密钥不入库不入镜像；CI 用 GitHub Secrets；泄露即刻轮换
 - 种子默认密码仅限开发默认值（`admin123`/`demo123456`），prod 覆盖项在 `compose.prod.yaml` 以 `${VAR:?}` 强制
+- **Redis（spec redis-queue-infra）**：`REDIS_HOST/PORT/PASSWORD` 经 compose 注入（prod `REDIS_PASSWORD` 必填）；`REDIS_CLIENT=predis` 必须显式注入（镜像无 phpredis 扩展，框架 config 默认值是 phpredis）；`QUEUE_CONNECTION=redis`、`CACHE_STORE=redis`（登录限流计数走 Redis db1，PG cache 表退役保留）
+- **驱动回滚（env 级，无需回退代码）**：`QUEUE_CONNECTION=database` + `CACHE_STORE=database` 即恢复原路径；Redis 故障域与 api 同栈同生命周期，限流/队列异常显性报错（不静默放行爆破，对齐「不静默失败」原则）
 
 ## 发布流程（每次发版执行，配合 `devops-rollout-plan` 技能）
 

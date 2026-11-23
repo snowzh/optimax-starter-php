@@ -210,6 +210,9 @@ const UserList: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         search={{ labelWidth: 'auto' }}
+        // 1 万级用户实测（压测 2026-11）：501 页只能点页码逐段翻，
+        // 补跳页框与每页条数切换；pageSize 变更随 request 参数回传后端
+        pagination={{ showQuickJumper: true, showSizeChanger: true }}
         toolBarRender={() => [
           <Button
             key="create"
