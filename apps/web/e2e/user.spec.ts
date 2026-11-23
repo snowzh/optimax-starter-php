@@ -324,7 +324,9 @@ test.describe('用户管理', () => {
       await loginViaUi(page, 'admin', 'admin123');
       await openSystemPage(page, '用户管理', /\/system\/user$/);
 
-      // 关键字唯一前缀：结果只剩探针一行
+      // 关键字唯一前缀：断言「探针行可见 + 种子行不出现」而非「仅一行」——
+      // 3 workers 并发下其他用例的探针用户可能同窗挤入列表，count 断言天然脆弱；
+      // 而 keyword 若未生效则种子行必然出现，语义不弱化
       await page
         .getByPlaceholder('用户名 / 显示名')
         .fill(probe.username);
@@ -333,9 +335,11 @@ test.describe('用户管理', () => {
       await expect(
         page.locator('tbody tr', { hasText: probe.username }),
       ).toBeVisible({ timeout: 15_000 });
-      await expect(page.locator('tbody tr')).toHaveCount(1, {
-        timeout: 15_000,
-      });
+      for (const seedRow of ['系统管理员', '演示用户', '爱丽丝']) {
+        await expect(
+          page.locator('tbody tr', { hasText: seedRow }),
+        ).toHaveCount(0, { timeout: 15_000 });
+      }
     } finally {
       await apiCall(request, adminToken, 'DELETE', `/api/v1/users/${probe.id}`);
     }
