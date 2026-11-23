@@ -29,8 +29,8 @@
 
 ## 文档回填与收尾
 
-- [ ] 8. 回填 `AGENTS.md` 环境与命令表；`BACKEND.md`/`FRONTEND.md` 技术栈事实卡（Laravel 13/antd 6.6.7/umi 4.7.34 实测版本）；`DEPLOYMENT.md` MySQL→PostgreSQL 18.7 与拓扑校准（antd server `--version` 锁定已于 627f484 完成）
-- [ ] 9. `claude-md-improver` 技能复审 `AGENTS.md`
+- [x] 8. 回填 `AGENTS.md` 环境与命令表；`BACKEND.md`/`FRONTEND.md` 技术栈事实卡（Laravel 13/antd 6.6.7/umi 4.7.34 实测版本）；`DEPLOYMENT.md` MySQL→PostgreSQL 18.7 与拓扑校准（antd server `--version` 锁定已于 627f484 完成）
+- [x] 9. `claude-md-improver` 技能复审 `AGENTS.md`
 
 ## converge 清单
 
