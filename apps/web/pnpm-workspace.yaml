@@ -1,0 +1,9 @@
+# pnpm 12+ 设置文件（package.json 的 pnpm 字段已废弃，见 https://pnpm.io/settings）
+# allowBuilds：允许执行构建脚本的依赖；false 表示明确禁止且不再提示
+# @scarf/scarf 为遥测上报脚本，刻意禁止
+allowBuilds:
+  core-js: true
+  core-js-pure: true
+  es5-ext: true
+  esbuild: true
+  "@scarf/scarf": false
