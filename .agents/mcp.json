@@ -2,7 +2,11 @@
   "mcpServers": {
     "antd": {
       "command": "npx",
-      "args": ["-y", "@ant-design/cli", "mcp"]
+      "args": ["-y", "@ant-design/cli", "mcp", "--version", "6.6.7"]
+    },
+    "laravel-boost": {
+      "command": "php",
+      "args": ["apps/api/artisan", "boost:mcp"]
     }
   }
 }

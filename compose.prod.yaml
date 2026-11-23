@@ -1,0 +1,39 @@
+# Optimax Starter · 生产覆盖（配合 compose.yaml 使用：docker compose -f compose.yaml -f compose.prod.yaml up -d）
+# 镜像 tag = git SHA（可追溯、可回滚）；环境变量经 env_file 注入，仓库仅提交 .env.example
+
+services:
+  nginx:
+    restart: unless-stopped
+    ports: !override
+      - "80:80"
+    # TLS 由部署方在反代/证书挂载处接入，预留说明见 DEPLOYMENT.md
+
+  web:
+    # 生产使用预构建镜像（CI 以 SHA tag 构建/推送），不现场构建
+    image: ${WEB_IMAGE:-optimax/web}:${IMAGE_TAG:?请以 git SHA 作为 IMAGE_TAG}
+    restart: unless-stopped
+
+  api:
+    image: ${API_IMAGE:-optimax/api}:${IMAGE_TAG:?请以 git SHA 作为 IMAGE_TAG}
+    restart: unless-stopped
+    environment:
+      APP_ENV: ${APP_ENV:-production}
+      APP_DEBUG: ${APP_DEBUG:-false}
+      APP_KEY: ${APP_KEY:?请在 .env 设置 APP_KEY}
+      APP_URL: ${APP_URL:?请在 .env 设置 APP_URL}
+      DB_HOST: db
+      MIGRATE_ON_START: ${MIGRATE_ON_START:-true}
+      SEED_ON_START: ${SEED_ON_START:-false}
+      LOG_CHANNEL: stderr
+      LOG_LEVEL: ${LOG_LEVEL:-warning}
+      ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?生产必须覆盖超管初始密码}
+      DEMO_INITIAL_PASSWORD: ${DEMO_INITIAL_PASSWORD:?生产必须覆盖演示账号初始密码}
+      # 覆盖基座 compose 的联调放宽值，生产回落默认 20 次/分（防爆破基线）
+      LOGIN_RATE_LIMIT_PER_MIN: ${LOGIN_RATE_LIMIT_PER_MIN:-20}
+
+  db:
+    restart: unless-stopped
+    healthcheck:
+      interval: 10s
+      timeout: 5s
+      retries: 12

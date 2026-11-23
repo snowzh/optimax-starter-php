@@ -1,0 +1,212 @@
+# Optimax Starter CI 门禁（BACKEND/FRONTEND/DEPLOYMENT 契约）
+# 安全基线：最小权限 GITHUB_TOKEN、第三方 action SHA pin、PR 并发自动取消
+# 注意：本仓库暂不含 push 事件下的镜像推送（发布流程见 DEPLOYMENT.md，后续需求补齐）
+name: CI
+
+on:
+  push:
+    branches: [dev, main]
+  pull_request:
+    branches: [dev, main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  # ── 后端门禁：Pint → Pest（pgsql service）→ 迁移可执行 → api 镜像构建 ──
+  api:
+    name: api（Pint / Pest / migrate / image）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/api
+    services:
+      postgres:
+        image: postgres:18.7-alpine
+        env:
+          POSTGRES_USER: optimax
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: optimax_starter_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U optimax -d optimax_starter_test"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DB_CONNECTION: pgsql
+      DB_HOST: 127.0.0.1
+      DB_PORT: "5432"
+      DB_DATABASE: optimax_starter_test
+      DB_USERNAME: optimax
+      DB_PASSWORD: secret
+      APP_ENV: testing
+      APP_KEY: base64:TmJzKa7yoynv63qdaXbvUMWDk3E9T/TPICnfLWMcpc4=
+      ADMIN_INITIAL_PASSWORD: admin123
+      DEMO_INITIAL_PASSWORD: demo123456
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup PHP 8.4（pgsql 扩展）
+        uses: shivammathur/setup-php@eb7c497e18156a6bbabfef1d3a82760b9eda3962 # 2.40.0
+        with:
+          php-version: "8.4"
+          extensions: pgsql, pdo_pgsql, mbstring, dom, fileinfo, intl, bcmath
+
+      - name: Composer install
+        run: composer install --no-interaction --prefer-dist
+
+      - name: Pint（代码风格）
+        run: vendor/bin/pint --test
+
+      - name: Pest（Service 层全量测试）
+        run: vendor/bin/pest
+
+      - name: 迁移可执行检查（migrate:fresh + seed 于隔离库）
+        run: php artisan migrate:fresh --seed --force
+
+      - name: 构建 api 镜像
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: apps/api
+          push: false
+          tags: optimax/api:ci
+
+  # ── 前端门禁：Biome → tsc → vitest → 构建 → web 镜像构建 ──
+  web:
+    name: web（Biome / tsc / vitest / build / image）
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Setup Node 22
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: "22"
+
+      - name: Install pnpm
+        run: npm install -g pnpm@12
+
+      - name: Install deps
+        run: pnpm install --frozen-lockfile
+
+      - name: Biome lint
+        run: pnpm exec biome lint
+
+      - name: TypeScript 检查
+        run: pnpm exec tsc --noEmit
+
+      - name: 安装 Playwright 浏览器（vitest browser 模式）
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Vitest（浏览器模式单测）
+        run: pnpm test
+
+      - name: 生产构建
+        run: pnpm build
+
+      - name: 构建 web 镜像
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: apps/web
+          push: false
+          tags: optimax/web:ci
+
+  # ── compose 配置校验（dev 基础 + prod 覆盖）──
+  compose-config:
+    name: compose（config 校验）
+    runs-on: ubuntu-latest
+    env:
+      APP_KEY: base64:TmJzKa7yoynv63qdaXbvUMWDk3E9T/TPICnfLWMcpc4=
+      APP_URL: http://localhost:8080
+      DB_PASSWORD: secret
+      ADMIN_INITIAL_PASSWORD: admin123
+      DEMO_INITIAL_PASSWORD: demo123456
+      IMAGE_TAG: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 校验 compose.yaml
+        run: docker compose config --quiet
+
+      - name: 校验 compose.prod.yaml 覆盖
+        run: docker compose -f compose.yaml -f compose.prod.yaml config --quiet
+
+  # ── E2E：compose 全栈 → Playwright 真实浏览器关键流程 ──
+  e2e:
+    name: e2e（全栈 Playwright）
+    runs-on: ubuntu-latest
+    needs: [api, web, compose-config]
+    env:
+      APP_KEY: base64:TmJzKa7yoynv63qdaXbvUMWDk3E9T/TPICnfLWMcpc4=
+      APP_URL: http://localhost:8080
+      DB_PASSWORD: secret
+      ADMIN_INITIAL_PASSWORD: admin123
+      DEMO_INITIAL_PASSWORD: demo123456
+      IMAGE_TAG: ci
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: 构建全栈镜像
+        run: docker compose build
+
+      - name: 启动全栈
+        run: docker compose up -d --wait
+
+      - name: 部署验证信号（web 200 / up 200 / 登录信封）
+        run: |
+          set -e
+          # 兜底轮询：即便 --wait 提前返回，/up 未就绪时重试等待 api 完成
+          for i in $(seq 1 30); do
+            code=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:8080/up || true)
+            [ "$code" = "200" ] && break
+            sleep 2
+          done
+          test "$code" = "200"
+          curl -sf -o /dev/null -w "web:%{http_code}\n" http://127.0.0.1:8080/
+          curl -sf -o /dev/null -w "up:%{http_code}\n" http://127.0.0.1:8080/up
+          curl -sf -X POST http://127.0.0.1:8080/api/v1/auth/login \
+            -H "Content-Type: application/json" \
+            -d '{"username":"admin","password":"admin123"}' \
+            | grep -q '"code":0' && echo "login:ok"
+
+      # starter-scaffold 事故防线（2026-11）：web nginx try_files 目录 301 曾把
+      # Location 写成 $host（不含端口），宿主浏览器直达/刷新被弹到 80 端口；
+      # compose 网内（默认端口）对该缺陷免疫，故从 runner 宿主端口原位断言。
+      - name: 宿主端口直达冒烟（路由 200 且零重定向）
+        run: |
+          set -e
+          for route in / /user/login /welcome /system/user /system/role /system/permission; do
+            headers=$(curl -sI "http://127.0.0.1:8080${route}")
+            code=$(echo "$headers" | head -1 | grep -oE '[0-9]{3}')
+            if [ "$code" != "200" ]; then
+              echo "FAIL ${route} -> ${code}"; exit 1
+            fi
+            if echo "$headers" | grep -qi '^location:'; then
+              echo "FAIL ${route} 发生重定向："; echo "$headers" | grep -i '^location:'; exit 1
+            fi
+            echo "PASS ${route} -> 200 零重定向"
+          done
+
+      - name: Playwright E2E（compose 网络内）
+        run: docker compose --profile e2e run --rm e2e
+
+      - name: 上传 E2E 证据
+        if: always()
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: e2e-artifacts
+          path: apps/web/e2e-out
+          retention-days: 14
