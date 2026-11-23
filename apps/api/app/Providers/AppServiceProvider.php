@@ -32,9 +32,11 @@ class AppServiceProvider extends ServiceProvider
                 : null,
         );
 
-        // 登录限流：按来源 IP 每分钟 20 次，防暴力破解（超限返回 HTTP 429，交回框架默认渲染）
+        // 登录限流：按来源 IP 每分钟限制次数，防暴力破解（超限返回 HTTP 429，交回框架默认渲染）。
+        // 默认 20 次/分；联调/E2E 环境经 LOGIN_RATE_LIMIT_PER_MIN 放宽（compose 全栈默认 240，
+        // Playwright 并发用例的 API 预置与 UI 登录会显著超出 20 次），生产保持默认值。
         RateLimiter::for('login', function (Request $request) {
-            return Limit::perMinute(20)->by($request->ip());
+            return Limit::perMinute((int) env('LOGIN_RATE_LIMIT_PER_MIN', 20))->by($request->ip());
         });
     }
 }

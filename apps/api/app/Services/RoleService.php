@@ -171,11 +171,11 @@ class RoleService
         });
     }
 
-    /** 受保护角色禁止删除与改矩阵 */
+    /** 受保护角色禁止删除与改矩阵（4006 全场景统一文案，与 UserService 指派路径一致） */
     private function assertMatrixEditable(Role $role): void
     {
         if ($role->is_protected) {
-            throw new BusinessException(ErrorCode::ProtectedRole, '受保护角色禁止删除/禁用/改权限矩阵');
+            throw new BusinessException(ErrorCode::ProtectedRole, '受保护角色禁止删除、禁用、修改权限矩阵或指派给用户');
         }
     }
 

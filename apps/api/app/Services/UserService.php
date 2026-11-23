@@ -247,7 +247,8 @@ class UserService
         }
 
         if ($roles->contains(fn (Role $role) => $role->is_protected)) {
-            throw new BusinessException(ErrorCode::ProtectedRole, '受保护角色禁止删除/禁用/改权限矩阵');
+            // 4006 覆盖受保护角色的全部写路径（删除/禁用/改矩阵/指派给用户）
+            throw new BusinessException(ErrorCode::ProtectedRole, '受保护角色禁止删除、禁用、修改权限矩阵或指派给用户');
         }
 
         return $roles;

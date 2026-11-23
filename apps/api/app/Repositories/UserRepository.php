@@ -26,7 +26,11 @@ class UserRepository
                         ->orWhere('name', 'ilike', "%{$keyword}%");
                 });
             })
-            ->when($filters['status'] ?? null, fn ($query, int $status) => $query->where('status', $status))
+            // status=0 是合法筛选值：显式判空（when 对 falsy 的 0 会跳过回调）
+            ->when(
+                ($filters['status'] ?? null) !== null,
+                fn ($query) => $query->where('status', (int) $filters['status']),
+            )
             ->orderBy('id')
             ->paginate($filters['page_size'] ?? 20, ['*'], 'page', $filters['page'] ?? 1);
     }

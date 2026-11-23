@@ -61,6 +61,8 @@ services:
       # 种子初始密码（生产必须覆盖）
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:-admin123}
       DEMO_INITIAL_PASSWORD: ${DEMO_INITIAL_PASSWORD:-demo123456}
+      # 登录限流放宽：全栈预览/E2E 并发用例需要（生产经 compose.prod.yaml 覆盖回默认 20）
+      LOGIN_RATE_LIMIT_PER_MIN: ${LOGIN_RATE_LIMIT_PER_MIN:-240}
     depends_on:
       db:
         condition: service_healthy

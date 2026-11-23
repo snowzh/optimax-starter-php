@@ -28,6 +28,8 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-warning}
       ADMIN_INITIAL_PASSWORD: ${ADMIN_INITIAL_PASSWORD:?生产必须覆盖超管初始密码}
       DEMO_INITIAL_PASSWORD: ${DEMO_INITIAL_PASSWORD:?生产必须覆盖演示账号初始密码}
+      # 覆盖基座 compose 的联调放宽值，生产回落默认 20 次/分（防爆破基线）
+      LOGIN_RATE_LIMIT_PER_MIN: ${LOGIN_RATE_LIMIT_PER_MIN:-20}
 
   db:
     restart: unless-stopped

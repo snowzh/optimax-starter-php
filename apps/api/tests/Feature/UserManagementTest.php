@@ -33,6 +33,20 @@ describe('列表与越权', function (): void {
             ->assertJsonPath('data.items.0.username', 'demo');
     });
 
+    it('状态过滤生效（0 仅返回禁用用户，1 仅返回启用用户）', function (): void {
+        User::where('username', 'alice')->update(['status' => 0]);
+
+        $this->getJson('/api/v1/users?status=0')
+            ->assertOk()
+            ->assertJsonPath('data.total', 1)
+            ->assertJsonPath('data.items.0.username', 'alice');
+
+        $this->getJson('/api/v1/users?status=1')
+            ->assertOk()
+            ->assertJsonPath('data.total', 2)
+            ->assertJsonPath('data.items.0.username', 'admin');
+    });
+
     it('无权限用户访问列表返回 HTTP 403 与业务码 2003（服务端校验）', function (): void {
         $alice = User::where('username', 'alice')->first();
 

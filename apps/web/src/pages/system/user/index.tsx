@@ -68,8 +68,12 @@ const UserList: React.FC = () => {
     const res = await roleIndex({ page: 1, page_size: 100 });
     setRoleOptions(
       (res.data.items as unknown as API.RoleResource[]).map((r) => ({
-        label: `${r.display_name}（${r.name}）`,
+        label: r.is_protected
+          ? `${r.display_name}（${r.name}）· 受保护，不可指派`
+          : `${r.display_name}（${r.name}）`,
         value: Number(r.id),
+        // 受保护角色置灰（体验层；后端 4006 兜底收口，前端隐藏/置灰不作安全手段）
+        disabled: !!r.is_protected,
       })),
     );
   };

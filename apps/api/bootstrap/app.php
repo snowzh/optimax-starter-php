@@ -26,6 +26,12 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
+        // API-only：显式取消框架默认的 guest 重定向（Laravel 13 默认注入
+        // redirectGuestsTo(fn () => route('login'))，属 MPA/session 时代假设；
+        // 本应用无 login 命名路由，未认证一律抛 AuthenticationException，
+        // 由下方信封渲染器统一返回 401/2001——与 Accept 头无关）
+        $middleware->redirectGuestsTo(null);
+
         // spatie/laravel-permission 中间件别名：路由上以 permission:xxx / role:xxx 使用
         $middleware->alias([
             'permission' => PermissionMiddleware::class,

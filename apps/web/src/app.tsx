@@ -71,8 +71,9 @@ export async function getInitialState(): Promise<{
   };
 }
 
-/** 跳转登录页并携带当前路径回跳参数 */
+/** 跳转登录页并携带当前路径回跳参数（token 已失效，同步清除本地残留） */
 function redirectToLoginWithCurrentPath() {
+  localStorage.removeItem(TOKEN_STORAGE_KEY);
   const { pathname, search, hash } = history.location;
   history.replace(
     `${loginPath}?redirect=${encodeURIComponent(pathname + search + hash)}`,
