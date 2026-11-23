@@ -324,6 +324,15 @@ test.describe('用户管理', () => {
       await loginViaUi(page, 'admin', 'admin123');
       await openSystemPage(page, '用户管理', /\/system\/user$/);
 
+      // 等初次列表加载完成再筛选：慢环境下初次加载未完时点查询，
+      // ProTable 会以空表单值 reload（返回全量），CI 实测稳定复现。
+      // 锚定 username 精确文本——显示名/角色 Tag 存在同名歧义（如角色「系统管理员」）
+      await expect(
+        page.locator('tbody tr').filter({
+          has: page.getByText('admin', { exact: true }),
+        }),
+      ).toBeVisible({ timeout: 15_000 });
+
       // 关键字唯一前缀：断言「探针行可见 + 种子行不出现」而非「仅一行」——
       // 3 workers 并发下其他用例的探针用户可能同窗挤入列表，count 断言天然脆弱；
       // 而 keyword 若未生效则种子行必然出现，语义不弱化
@@ -335,9 +344,11 @@ test.describe('用户管理', () => {
       await expect(
         page.locator('tbody tr', { hasText: probe.username }),
       ).toBeVisible({ timeout: 15_000 });
-      for (const seedRow of ['系统管理员', '演示用户', '爱丽丝']) {
+      for (const seedUsername of ['admin', 'demo', 'alice']) {
         await expect(
-          page.locator('tbody tr', { hasText: seedRow }),
+          page.locator('tbody tr').filter({
+            has: page.getByText(seedUsername, { exact: true }),
+          }),
         ).toHaveCount(0, { timeout: 15_000 });
       }
     } finally {
@@ -358,6 +369,13 @@ test.describe('用户管理', () => {
       await loginViaUi(page, 'admin', 'admin123');
       await openSystemPage(page, '用户管理', /\/system\/user$/);
 
+      // 同上：等初次列表加载完成再筛选，规避空表单竞态（username 精确锚）
+      await expect(
+        page.locator('tbody tr').filter({
+          has: page.getByText('admin', { exact: true }),
+        }),
+      ).toBeVisible({ timeout: 15_000 });
+
       await page.getByRole('combobox', { name: '状态筛选' }).click();
       await page
         .locator('.ant-select-item-option', { hasText: '禁用' })
@@ -367,9 +385,11 @@ test.describe('用户管理', () => {
       await expect(
         page.locator('tbody tr', { hasText: probe.username }),
       ).toBeVisible({ timeout: 15_000 });
-      // 种子用户均为启用：禁用视图下不应出现 admin
+      // 种子用户均为启用：禁用视图下不应出现 admin（username 精确锚）
       await expect(
-        page.locator('tbody tr', { hasText: '系统管理员' }),
+        page.locator('tbody tr').filter({
+          has: page.getByText('admin', { exact: true }),
+        }),
       ).toHaveCount(0);
     } finally {
       await apiCall(request, adminToken, 'DELETE', `/api/v1/users/${probe.id}`);
