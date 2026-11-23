@@ -157,6 +157,7 @@ const RoleList: React.FC = () => {
         actionRef={actionRef}
         rowKey="id"
         search={{ labelWidth: 'auto' }}
+        pagination={{ showQuickJumper: true, showSizeChanger: true }}
         toolBarRender={() => [
           <Button
             key="create"
