@@ -182,6 +182,24 @@ jobs:
             -d '{"username":"admin","password":"admin123"}' \
             | grep -q '"code":0' && echo "login:ok"
 
+      # starter-scaffold 事故防线（2026-11）：web nginx try_files 目录 301 曾把
+      # Location 写成 $host（不含端口），宿主浏览器直达/刷新被弹到 80 端口；
+      # compose 网内（默认端口）对该缺陷免疫，故从 runner 宿主端口原位断言。
+      - name: 宿主端口直达冒烟（路由 200 且零重定向）
+        run: |
+          set -e
+          for route in / /user/login /welcome /system/user /system/role /system/permission; do
+            headers=$(curl -sI "http://127.0.0.1:8080${route}")
+            code=$(echo "$headers" | head -1 | grep -oE '[0-9]{3}')
+            if [ "$code" != "200" ]; then
+              echo "FAIL ${route} -> ${code}"; exit 1
+            fi
+            if echo "$headers" | grep -qi '^location:'; then
+              echo "FAIL ${route} 发生重定向："; echo "$headers" | grep -i '^location:'; exit 1
+            fi
+            echo "PASS ${route} -> 200 零重定向"
+          done
+
       - name: Playwright E2E（compose 网络内）
         run: docker compose --profile e2e run --rm e2e
 

@@ -7,6 +7,8 @@ export default defineConfig({
   fullyParallel: false,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
+  // 长链路用例（多轮登录/登出 + 抽屉/矩阵交互）远超默认 30s，统一放宽到 90s
+  timeout: 90_000,
   use: {
     // 全栈 compose 入口（根 compose.yaml：nginx 8080 分流 web/api）
     // 运行前需先 docker compose up -d（CI 由 e2e job 拉起）

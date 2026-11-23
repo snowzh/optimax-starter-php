@@ -23,7 +23,8 @@
       "!biome.json",
       "!tailwind.css",
       "!package-lock.json",
-      "!**/.worktrees"
+      "!**/.worktrees",
+      "!**/e2e-out"
     ]
   },
   "formatter": {
