@@ -130,6 +130,8 @@ jobs:
       APP_KEY: base64:TmJzKa7yoynv63qdaXbvUMWDk3E9T/TPICnfLWMcpc4=
       APP_URL: http://localhost:8080
       DB_PASSWORD: secret
+      # compose 栈 redis 的 ${VAR:?} 硬校验（仅校验用值，非真实凭据）
+      REDIS_PASSWORD: secret
       ADMIN_INITIAL_PASSWORD: admin123
       DEMO_INITIAL_PASSWORD: demo123456
       IMAGE_TAG: ci
@@ -152,6 +154,8 @@ jobs:
       APP_KEY: base64:TmJzKa7yoynv63qdaXbvUMWDk3E9T/TPICnfLWMcpc4=
       APP_URL: http://localhost:8080
       DB_PASSWORD: secret
+      # 全栈 redis 的 ${VAR:?} 硬校验（校验/联调用值，非真实凭据）
+      REDIS_PASSWORD: secret
       ADMIN_INITIAL_PASSWORD: admin123
       DEMO_INITIAL_PASSWORD: demo123456
       IMAGE_TAG: ci

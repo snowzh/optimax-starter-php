@@ -52,6 +52,14 @@ services:
       DB_DATABASE: ${DB_DATABASE:-optimax_starter}
       DB_USERNAME: ${DB_USERNAME:-optimax}
       DB_PASSWORD: ${DB_PASSWORD:?请在 .env 设置 DB_PASSWORD}
+      # 队列/缓存驱动：Redis（限流计数与异步任务通道，回滚见 DEPLOYMENT.md）
+      QUEUE_CONNECTION: ${QUEUE_CONNECTION:-redis}
+      CACHE_STORE: ${CACHE_STORE:-redis}
+      # predis 为纯 PHP 客户端（镜像无 phpredis 扩展；config 默认值是 phpredis，必须显式覆盖）
+      REDIS_CLIENT: predis
+      REDIS_HOST: redis
+      REDIS_PORT: "6379"
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
       LOG_CHANNEL: stderr
       LOG_LEVEL: ${LOG_LEVEL:-debug}
       # 容器启动时执行迁移（本地全栈预览默认开启）
@@ -66,6 +74,27 @@ services:
     depends_on:
       db:
         condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - optimax
+
+  # Redis 7.4（队列驱动 + 限流/缓存计数；锁定版本禁 latest）
+  # 持久化默认关闭：队列任务可重建（worker 停止期间滞留内存列表），
+  # 需要任务跨重启不丢时按 DEPLOYMENT.md 开 appendonly 挂卷
+  redis:
+    image: redis:7.4-alpine
+    # $$ 为 compose 转义：容器内 shell 展开 REDIS_PASSWORD，凭据不落 command 字面
+    command: ["sh", "-c", "exec redis-server --requirepass \"$$REDIS_PASSWORD\""]
+    environment:
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?请在 .env 设置 REDIS_PASSWORD}
+    expose:
+      - "6379"
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli --no-auth-warning -a \"$$REDIS_PASSWORD\" ping 2>/dev/null | grep -q PONG || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
     networks:
       - optimax
 
