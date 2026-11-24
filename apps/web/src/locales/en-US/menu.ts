@@ -1,4 +1,9 @@
 export default {
+  'menu.material': 'Material',
+  'menu.material.product': 'Products',
+  'menu.material.component': 'Components',
+  'menu.material.stock': 'Stock',
+  'menu.material.production': 'Production',
   'menu.system': 'System',
   'menu.system.user': 'Users',
   'menu.system.role': 'Roles',

@@ -24,6 +24,23 @@ class PermissionSeeder extends Seeder
         'permission' => [
             'system.permission.view' => '查看权限清单',
         ],
+        // 物料管理（spec material-mgmt）：四域 × (view, manage)，对齐基座范式
+        'material.product' => [
+            'material.product.view' => '查看产品型号',
+            'material.product.manage' => '管理产品型号',
+        ],
+        'material.component' => [
+            'material.component.view' => '查看零件型号',
+            'material.component.manage' => '管理零件型号',
+        ],
+        'material.stock' => [
+            'material.stock.view' => '查看库存台账',
+            'material.stock.manage' => '库存出入库操作',
+        ],
+        'material.production' => [
+            'material.production.view' => '查看生产记录',
+            'material.production.manage' => '生产操作',
+        ],
     ];
 
     public function run(): void

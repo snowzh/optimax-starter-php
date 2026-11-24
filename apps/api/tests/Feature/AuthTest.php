@@ -91,8 +91,16 @@ describe('当前用户', function (): void {
             ->assertJsonPath('code', 0)
             ->assertJsonPath('data.user.username', 'admin');
 
-        // 权限并集：5 个种子权限码全部在场（顺序不依赖 DB 返回）
+        // 权限并集：全部种子权限码在场（system 5 码 + material 8 码，spec material-mgmt 扩容）
         expect(collect($response->json('data.user.permissions'))->sort()->values()->all())->toBe([
+            'material.component.manage',
+            'material.component.view',
+            'material.product.manage',
+            'material.product.view',
+            'material.production.manage',
+            'material.production.view',
+            'material.stock.manage',
+            'material.stock.view',
             'system.permission.view',
             'system.role.manage',
             'system.role.view',

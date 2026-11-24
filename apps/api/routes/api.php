@@ -1,8 +1,13 @@
 <?php
 
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\ComponentController;
+use App\Http\Controllers\Api\V1\InstallPositionController;
 use App\Http\Controllers\Api\V1\PermissionController;
+use App\Http\Controllers\Api\V1\ProductController;
+use App\Http\Controllers\Api\V1\ProductionController;
 use App\Http\Controllers\Api\V1\RoleController;
+use App\Http\Controllers\Api\V1\StockController;
 use App\Http\Controllers\Api\V1\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -58,4 +63,61 @@ Route::prefix('v1')->group(function (): void {
     // 权限清单（只读）
     Route::get('permissions', [PermissionController::class, 'index'])
         ->middleware(['auth:sanctum', 'permission:system.permission.view']);
+
+    // ── 物料管理（spec material-mgmt）────────────────────────────
+    // 型号域：产品 + 安装位置（A 方案）；读 material.product.view / 写 material.product.manage
+    Route::prefix('material')->group(function (): void {
+        Route::middleware(['auth:sanctum', 'permission:material.product.view'])->group(function (): void {
+            Route::get('products', [ProductController::class, 'index']);
+            Route::get('products/position-options', [ProductController::class, 'componentOptions']);
+            Route::get('products/{product}', [ProductController::class, 'show'])->whereNumber('product');
+            Route::get('products/{product}/positions', [ProductController::class, 'positionsIndex'])->whereNumber('product');
+        });
+
+        Route::middleware(['auth:sanctum', 'permission:material.product.manage'])->group(function (): void {
+            Route::post('products', [ProductController::class, 'store']);
+            Route::put('products/{product}', [ProductController::class, 'update'])->whereNumber('product');
+            Route::delete('products/{product}', [ProductController::class, 'destroy'])->whereNumber('product');
+            Route::post('products/{product}/positions', [ProductController::class, 'positionsStore'])->whereNumber('product');
+            Route::put('positions/{position}', [InstallPositionController::class, 'update'])->whereNumber('position');
+            Route::delete('positions/{position}', [InstallPositionController::class, 'destroy'])->whereNumber('position');
+        });
+
+        // 零件型号域：读 material.component.view / 写 material.component.manage
+        Route::middleware(['auth:sanctum', 'permission:material.component.view'])->group(function (): void {
+            Route::get('components', [ComponentController::class, 'index']);
+            Route::get('components/{component}', [ComponentController::class, 'show'])->whereNumber('component');
+        });
+
+        Route::middleware(['auth:sanctum', 'permission:material.component.manage'])->group(function (): void {
+            Route::post('components', [ComponentController::class, 'store']);
+            Route::put('components/{component}', [ComponentController::class, 'update'])->whereNumber('component');
+            Route::delete('components/{component}', [ComponentController::class, 'destroy'])->whereNumber('component');
+        });
+
+        // 库存域：读 material.stock.view / 写 material.stock.manage
+        Route::middleware(['auth:sanctum', 'permission:material.stock.view'])->group(function (): void {
+            Route::get('product-units', [StockController::class, 'productUnitsIndex']);
+            Route::get('component-units', [StockController::class, 'componentUnitsIndex']);
+            Route::get('movements', [StockController::class, 'movementsIndex']);
+        });
+
+        Route::middleware(['auth:sanctum', 'permission:material.stock.manage'])->group(function (): void {
+            Route::post('product-units', [StockController::class, 'productUnitsStore']);
+            Route::post('product-units/{unit}/out', [StockController::class, 'productUnitsOut'])->whereNumber('unit');
+            Route::post('component-units', [StockController::class, 'componentUnitsStore']);
+            Route::post('component-units/{unit}/out', [StockController::class, 'componentUnitsOut'])->whereNumber('unit');
+        });
+
+        // 生产域：读 material.production.view / 写 material.production.manage
+        Route::middleware(['auth:sanctum', 'permission:material.production.view'])->group(function (): void {
+            Route::get('production/bom', [ProductionController::class, 'bom']);
+            Route::get('production', [ProductionController::class, 'index']);
+            Route::get('production/{record}', [ProductionController::class, 'show'])->whereNumber('record');
+        });
+
+        Route::middleware(['auth:sanctum', 'permission:material.production.manage'])->group(function (): void {
+            Route::post('production', [ProductionController::class, 'store']);
+        });
+    });
 });

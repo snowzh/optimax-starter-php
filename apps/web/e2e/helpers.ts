@@ -92,6 +92,32 @@ export async function openSystemPage(
   await expect(page).toHaveURL(urlPattern);
 }
 
+/** antd Select 交互：点开组合框 → 等下拉渲染 → 点击含指定文本的唯一选项。
+ * （直点后立刻找 option 有渲染竞态——慢环境下下拉未展开即超时，实测教训） */
+export async function pickSelectOption(
+  page: Page,
+  selectLocator: import('@playwright/test').Locator,
+  optionText: string,
+) {
+  await selectLocator.click();
+  // antd Select 大列表虚拟化：目标项可能在可视区外不在 DOM——showSearch
+  // Select 先输入过滤词收缩列表；非搜索 Select（ProTable valueEnum 筛选）
+  // 不接受输入，跳过（其列表通常很短、全量渲染），直接按可见项选择
+  try {
+    await selectLocator.fill(optionText, { timeout: 3000 });
+    await page.waitForTimeout(300);
+  } catch {
+    // input 不可编辑：保持已展开状态直接选择
+  }
+  const option = page
+    .locator('.ant-select-dropdown:visible .ant-select-item-option', {
+      hasText: optionText,
+    })
+    .first();
+  await option.waitFor({ state: 'visible', timeout: 15_000 });
+  await option.click();
+}
+
 /** 登出 UI 会话：头像菜单 → 退出登录（换会话验证权限即时生效用） */
 export async function logoutViaUi(page: Page, displayName: string) {
   await page

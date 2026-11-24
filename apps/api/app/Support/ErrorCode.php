@@ -43,6 +43,21 @@ enum ErrorCode: int
     /** 受保护角色禁止删除/禁用/改权限矩阵 */
     case ProtectedRole = 4006;
 
+    /** 实例状态不允许该操作（非在库出库、终态再操作） */
+    case UnitStatusNotAllowed = 4007;
+
+    /** 型号下存在库存实例，禁止删除 */
+    case ModelHasUnits = 4008;
+
+    /** 同产品型号安装位置名重复 */
+    case PositionNameConflict = 4009;
+
+    /** 生产零件在库量不足（data 附缺口明细） */
+    case InsufficientComponents = 4010;
+
+    /** 生产消耗零件不可用（含不可用件明细） */
+    case UnusableConsumption = 4011;
+
     /** 服务端内部错误（HTTP 500，对外脱敏） */
     case InternalError = 5000;
 }

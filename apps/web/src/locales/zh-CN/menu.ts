@@ -3,6 +3,12 @@ export default {
   'menu.system.user': '用户管理',
   'menu.system.role': '角色管理',
   'menu.system.permission': '权限清单',
+  // 物料管理（spec material-mgmt）
+  'menu.material': '物料管理',
+  'menu.material.product': '产品型号',
+  'menu.material.component': '零件型号',
+  'menu.material.stock': '库存台账',
+  'menu.material.production': '生产工单',
   'menu.welcome': '欢迎',
   'menu.more-blocks': '更多区块',
   'menu.home': '首页',

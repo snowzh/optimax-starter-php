@@ -16,5 +16,14 @@ export default function access(
     'system.role.view': permissions.has('system.role.view'),
     'system.role.manage': permissions.has('system.role.manage'),
     'system.permission.view': permissions.has('system.permission.view'),
+    // 物料管理四域（spec material-mgmt，与 PermissionSeeder 一一对应）
+    'material.product.view': permissions.has('material.product.view'),
+    'material.product.manage': permissions.has('material.product.manage'),
+    'material.component.view': permissions.has('material.component.view'),
+    'material.component.manage': permissions.has('material.component.manage'),
+    'material.stock.view': permissions.has('material.stock.view'),
+    'material.stock.manage': permissions.has('material.stock.manage'),
+    'material.production.view': permissions.has('material.production.view'),
+    'material.production.manage': permissions.has('material.production.manage'),
   };
 }

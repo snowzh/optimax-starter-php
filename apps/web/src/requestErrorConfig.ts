@@ -64,7 +64,11 @@ export const errorConfig: RequestConfig = {
     // 错误接收及处理
     errorHandler: (error: any, opts: any) => {
       if (opts?.skipErrorHandler) throw error;
-      // errorThrower 抛出的业务错误：统一弹出后端可读中文提示
+      // errorThrower 抛出的业务错误：统一弹出后端可读中文提示。
+      // 提示后向上抛（reject 沿调用链）——HTTP 200 信封承载的业务失败若被
+      // resolve 吞掉，ModalForm onFinish 会走成功路径关窗并盖掉错误提示
+      // （实测教训：4009 场景，spec material-mgmt）；各提交点以 try/catch
+      // 维持弹窗，查询点以 catch 回退空态
       if (error.name === 'BizError') {
         const errorInfo: { code?: number; errorMessage?: string } | undefined =
           error.info;
@@ -78,11 +82,11 @@ export const errorConfig: RequestConfig = {
           if (code === 1001) {
             // 参数校验失败：提示整体文案（字段级明细在 data.errors，通常由表单自行校验）
             message.error(errorMessage ?? '参数校验失败');
-            return;
+            throw error;
           }
           message.error(errorMessage ?? '操作失败');
         }
-        return;
+        throw error;
       }
       // Axios 层错误：HTTP 状态码分支
       if (error.response) {
@@ -128,6 +132,27 @@ export const errorConfig: RequestConfig = {
     },
   ],
 
-  // 响应拦截器：无需改写响应（errorThrower 在 request 插件内统一处理信封）
-  responseInterceptors: [],
+  // 响应拦截器：统一信封收口。HTTP 200 承载业务失败（4xxx）在此转异常——
+  // 实测 errorThrower 管道在本场景不执行（spec material-mgmt 4009 实证），
+  // 拦截器抛出必致 request reject，调用方（ModalForm onFinish 等）中断，
+  // errorHandler 随后统一提示；成功（code 0）原样透传
+  responseInterceptors: [
+    (response) => {
+      const data = response.data as
+        | { code?: number; message?: string }
+        | undefined;
+      if (data && typeof data.code === 'number' && data.code !== 0) {
+        const error: any = new Error(data.message ?? '操作失败');
+        error.name = 'BizError';
+        error.info = {
+          code: data.code,
+          errorMessage: data.message,
+          showType: 2,
+        };
+        throw error;
+      }
+
+      return response;
+    },
+  ],
 };

@@ -15,6 +15,11 @@ class PermissionService
         'user' => '用户管理',
         'role' => '角色管理',
         'permission' => '权限清单',
+        // 物料管理（spec material-mgmt）：四域
+        'material.product' => '产品型号',
+        'material.component' => '零件型号',
+        'material.stock' => '库存台账',
+        'material.production' => '生产记录',
     ];
 
     public function __construct(

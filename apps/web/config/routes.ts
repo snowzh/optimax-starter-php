@@ -73,6 +73,46 @@ export default [
     ],
   },
   {
+    // 物料管理（spec material-mgmt）：四域路由与权限一一对应
+    path: '/material',
+    name: 'material',
+    icon: 'appstore',
+    routes: [
+      {
+        path: '/material',
+        redirect: '/material/product',
+      },
+      {
+        name: 'product',
+        icon: 'profile',
+        path: '/material/product',
+        component: './material/product',
+        access: 'material.product.view',
+      },
+      {
+        name: 'component',
+        icon: 'tool',
+        path: '/material/component',
+        component: './material/component',
+        access: 'material.component.view',
+      },
+      {
+        name: 'stock',
+        icon: 'database',
+        path: '/material/stock',
+        component: './material/stock',
+        access: 'material.stock.view',
+      },
+      {
+        name: 'production',
+        icon: 'experiment',
+        path: '/material/production',
+        component: './material/production',
+        access: 'material.production.view',
+      },
+    ],
+  },
+  {
     name: 'exception',
     icon: 'warning',
     path: '/exception',

@@ -40,13 +40,18 @@ HTTP 状态码只表达传输层语义（401/403/404/422/500）；业务成败�
 | 2001 | 401 | 未认证（token 缺失/失效/已注销） | starter-scaffold |
 | 2003 | 403 | 已认证但无所需权限 | starter-scaffold |
 | 3001 | 404 | 资源不存在（含请求中不存在的 id/权限码） | starter-scaffold |
-| 3002 | 409 | 唯一性冲突（用户名/角色 slug 已存在） | starter-scaffold |
+| 3002 | 409 | 唯一性冲突（用户名/角色 slug/物料编码/库存实例编号已存在） | starter-scaffold |
 | 4001 | 200 | 用户名或密码错误 | starter-scaffold |
 | 4002 | 200 | 用户已禁用 | starter-scaffold |
 | 4003 | 200 | 旧密码错误（改密场景） | starter-scaffold |
 | 4004 | 200 | 最后一个超级管理员禁止删除/禁用/降级 | starter-scaffold |
 | 4005 | 200 | 禁止删除当前登录账号 | starter-scaffold |
 | 4006 | 200 | 受保护角色禁止删除/禁用/修改权限矩阵/指派给用户 | starter-scaffold |
+| 4007 | 200 | 实例状态不允许该操作（非在库出库、终态再操作） | material-mgmt |
+| 4008 | 200 | 型号下存在库存实例，禁止删除 | material-mgmt |
+| 4009 | 200 | 同产品型号安装位置名重复 | material-mgmt |
+| 4010 | 200 | 生产零件在库量不足（data 附缺口明细） | material-mgmt |
+| 4011 | 200 | 生产消耗零件不可用（含不可用件明细） | material-mgmt |
 | 5000 | 500 | 服务端内部错误（对外脱敏，详情仅记日志） | starter-scaffold |
 
 约定：`4xxx` 业务规则拒绝属预期内业务结果，传输层 HTTP 200、成败看 `code`；`1xxx/2xxx/3xxx` 按上表映射 HTTP 传输层语义码。
