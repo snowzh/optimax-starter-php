@@ -25,9 +25,11 @@ vi.mock('@umijs/max', () => ({
 }));
 
 describe('requestErrorConfig（统一信封 {code, message, data}）', () => {
-  // 响应拦截器：HTTP 200 信封业务失败转异常（spec material-mgmt 收口）
-  // biome-ignore lint/style/noNonNullAssertion: config is always defined
-  const responseInterceptor = errorConfig.responseInterceptors![0];
+  // 响应拦截器：HTTP 200 信封业务失败转异常（spec material-mgmt 收口）。
+  // RequestConfig 的拦截器类型按返回值协变收敛，运行时形态以断言收窄
+  const responseInterceptor = (errorConfig as {
+    responseInterceptors: Array<(response: unknown) => unknown>;
+  }).responseInterceptors[0];
 
   describe('responseInterceptor（200 信封业务失败收口）', () => {
     it('code 非 0 时转 BizError 抛出（request reject，调用方中断）', () => {
