@@ -25,6 +25,31 @@ vi.mock('@umijs/max', () => ({
 }));
 
 describe('requestErrorConfig（统一信封 {code, message, data}）', () => {
+  // 响应拦截器：HTTP 200 信封业务失败转异常（spec material-mgmt 收口）
+  // biome-ignore lint/style/noNonNullAssertion: config is always defined
+  const responseInterceptor = errorConfig.responseInterceptors![0];
+
+  describe('responseInterceptor（200 信封业务失败收口）', () => {
+    it('code 非 0 时转 BizError 抛出（request reject，调用方中断）', () => {
+      let caught: any;
+      try {
+        responseInterceptor({
+          data: { code: 4009, message: '该产品型号下位置名已存在', data: [] },
+        } as any);
+      } catch (e: any) {
+        caught = e;
+      }
+      expect(caught?.name).toBe('BizError');
+      expect(caught?.info?.code).toBe(4009);
+      expect(caught?.message).toBe('该产品型号下位置名已存在');
+    });
+
+    it('code 为 0 时原样透传', () => {
+      const response = { data: { code: 0, message: 'ok' } } as any;
+      expect(responseInterceptor(response)).toBe(response);
+    });
+  });
+
   // biome-ignore lint/style/noNonNullAssertion: config handlers are always defined
   const errorThrower = errorConfig.errorConfig!.errorThrower!;
   // biome-ignore lint/style/noNonNullAssertion: config handlers are always defined
@@ -76,13 +101,12 @@ describe('requestErrorConfig（统一信封 {code, message, data}）', () => {
       );
     });
 
-    it('业务码 1001：弹出后端提示', () => {
+    it('业务码 1001：弹出后端提示并向上抛（调用方中断，防走成功路径）', () => {
       const error: any = new Error('参数校验失败');
       error.name = 'BizError';
       error.info = { code: 1001, errorMessage: '参数校验失败' };
 
-      errorHandler(error, {});
-
+      expect(() => errorHandler(error, {})).toThrow('参数校验失败');
       expect(message.error).toHaveBeenCalledWith('参数校验失败');
     });
 
