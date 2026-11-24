@@ -112,7 +112,7 @@ describe('requestErrorConfig（统一信封 {code, message, data}）', () => {
       expect(message.error).toHaveBeenCalledWith('参数校验失败');
     });
 
-    it('其余业务码：弹出可读中文提示', () => {
+    it('其余业务码：弹出可读中文提示并向上抛', () => {
       const error: any = new Error('最后一个超级管理员禁止删除/禁用/降级');
       error.name = 'BizError';
       error.info = {
@@ -120,8 +120,9 @@ describe('requestErrorConfig（统一信封 {code, message, data}）', () => {
         errorMessage: '最后一个超级管理员禁止删除/禁用/降级',
       };
 
-      errorHandler(error, {});
-
+      expect(() => errorHandler(error, {})).toThrow(
+        '最后一个超级管理员禁止删除/禁用/降级',
+      );
       expect(message.error).toHaveBeenCalledWith(
         '最后一个超级管理员禁止删除/禁用/降级',
       );
