@@ -118,7 +118,7 @@ return new class extends Migration
         Schema::create('production_consumptions', function (Blueprint $table) {
             $table->id();
             $table->foreignId('production_record_id')->constrained('production_records')->cascadeOnDelete();
-            $table->foreignId('component_unit_id')->constrained('component_units')->restrictOnDelete()->comment('消耗的零件件，一件只能被消耗一次');
+            $table->foreignId('component_unit_id')->constrained('component_units')->restrictOnDelete()->comment('消耗的零件，一件只能被消耗一次');
             $table->timestamp('created_at')->nullable()->comment('append-only 台账，无 updated_at');
 
             $table->unique('component_unit_id');

@@ -358,7 +358,7 @@ const ProductList: React.FC = () => {
         <ProFormText
           name="quantity"
           label="安装数量"
-          placeholder="该位置所需该零件件数（≥1）"
+          placeholder="该位置所需该零件数（≥1）"
           rules={[
             { required: true, message: '请输入安装数量' },
             {

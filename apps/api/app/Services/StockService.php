@@ -49,7 +49,7 @@ class StockService
     }
 
     /**
-     * 产品件入库（默认采购入库）：置在库 + 流水 + 审计，同一事务。
+     * 产品入库（默认采购入库）：置在库 + 流水 + 审计，同一事务。
      *
      * @param  array{product_id: int, serial_no: string, remark?: ?string, type?: int}  $data
      */
@@ -57,7 +57,7 @@ class StockService
     {
         $this->products->findByIdOrFail($data['product_id']);
 
-        // 编号全局唯一（决策 3）：产品件与零件件共用同一编号域
+        // 编号全局唯一（决策 3）：产品与零件共用同一编号域
         if ($this->productUnits->existsSerial($data['serial_no'])
             || $this->componentUnits->existsSerial($data['serial_no'])) {
             throw new BusinessException(ErrorCode::Conflict, '库存实例编号已存在', 409);
@@ -94,7 +94,7 @@ class StockService
     }
 
     /**
-     * 零件件入库：与产品件同构。
+     * 零件入库：与产品同构。
      *
      * @param  array{component_id: int, serial_no: string, remark?: ?string, type?: int}  $data
      */
@@ -139,7 +139,7 @@ class StockService
     }
 
     /**
-     * 产品件出库：领用/发货 → 已出库；报废 → 已报废；非在库拒绝（4007）。
+     * 产品出库：领用/发货 → 已出库；报废 → 已报废；非在库拒绝（4007）。
      *
      * @param  array{type: int, remark?: ?string}  $data
      */
@@ -176,7 +176,7 @@ class StockService
     }
 
     /**
-     * 零件件出库：与产品件同构（已消耗件同样拒绝）。
+     * 零件出库：与产品同构（已消耗件同样拒绝）。
      *
      * @param  array{type: int, remark?: ?string}  $data
      */

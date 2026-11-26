@@ -35,7 +35,7 @@ class ProductionRecordResource extends JsonResource
             ]),
             'operator' => $this->whenLoaded('operator', fn () => $this->operator?->only(['id', 'name'])),
             'consumptions_count' => $this->whenCounted('consumptions', fn () => $this->consumptions_count),
-            // 详情态：消耗明细（零件件 + 型号反推）
+            // 详情态：消耗明细（零件 + 型号反推）
             'consumptions' => $this->whenLoaded(
                 'consumptions',
                 fn () => $this->consumptions->map(fn ($c) => [

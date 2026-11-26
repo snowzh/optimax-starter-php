@@ -27,7 +27,7 @@ class ProductionRecordRepository
             ->paginate($filters['page_size'] ?? 20, ['*'], 'page', $filters['page'] ?? 1);
     }
 
-    /** 详情：含消耗明细与零件件摘要（型号经 unit→component 反推） */
+    /** 详情：含消耗明细与零件摘要（型号经 unit→component 反推） */
     public function findByIdWithConsumptions(int $id): ProductionRecord
     {
         return ProductionRecord::query()

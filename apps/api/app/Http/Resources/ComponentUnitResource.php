@@ -7,7 +7,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
- * 零件库存件视图：与产品件同构（状态含已消耗终态）。
+ * 零件库存件视图：与产品同构（状态含已消耗终态）。
  *
  * @mixin ComponentUnit
  */

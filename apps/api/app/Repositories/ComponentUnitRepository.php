@@ -7,7 +7,7 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 
 /**
- * 零件库存件数据访问：与产品件同构（零件独有「已消耗」终态）。
+ * 零件库存件数据访问：与产品同构（零件独有「已消耗」终态）。
  */
 class ComponentUnitRepository
 {
@@ -42,7 +42,7 @@ class ComponentUnitRepository
         return ComponentUnit::create($attributes);
     }
 
-    /** 生产领件用：按 id 集合取「在库」零件件（不在结果中的提交件即不可用） */
+    /** 生产领件用：按 id 集合取「在库」零件（不在结果中的提交件即不可用） */
     public function listInStockByIds(array $ids): Collection
     {
         return ComponentUnit::query()

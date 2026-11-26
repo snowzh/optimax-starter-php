@@ -7,7 +7,7 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 /**
- * 生产消耗明细：记录被消耗的零件件（一件只能被消耗一次，component_unit_id 唯一）。
+ * 生产消耗明细：记录被消耗的零件（一件只能被消耗一次，component_unit_id 唯一）。
  * 型号经 unit→component 反推，不冗余存储。
  */
 #[Fillable(['production_record_id', 'component_unit_id'])]
