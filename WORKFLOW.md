@@ -53,7 +53,7 @@ feat/<slug> / fix/<slug> / chore/<slug>…
 - 开发分支 → dev：**Squash Merge**（功能压平）+ 线性历史
 - **dev → main：Merge Commit**（保留 dev 完整拓扑）——main 恒含 dev 全历史，发布 PR 恒可自动合并；
   squash-only 曾使每次发布产生全新 SHA 永久分叉，靠「快照缝合」手工绕过（#6/#10/#14），已治理废弃
-- **护栏**：CI `branch-align` job 校验 `merge-base(main, dev) == dev HEAD`（dev 全历史已含于 main），分叉即红——红灯处置见 spec 治理节
+- **护栏**：CI `branch-align` job 双向分场景校验（spec branch-history-governance）——dev 侧 `rev-list --no-merges origin/main --not origin/dev` 为空（main 无 dev 未含的孤儿提交，发布 merge commit 豁免）；main 侧发布后终验 `merge-base(main, dev) == dev HEAD`；分叉即红，处置见 spec 治理节
 
 ### 维护规范（文档级约束，无条件生效）
 
