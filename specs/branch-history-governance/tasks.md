@@ -5,34 +5,36 @@
 
 ## 制度修正
 
-- [ ] 1. ⚠️ GitHub 仓库设置：允许 merge commit（保留 squash 选项）；main 分支关闭「线性历史」限制（dev 保持不变）
-- [ ] 2. `scripts/setup-branch-protection.sh` 按 main/dev 差异化重写（main：PR 必须 + 允许 merge；dev：PR 必须 + squash-only），注释引用本 spec
+- [x] 1. ⚠️ GitHub 仓库设置：允许 merge commit（保留 squash 选项）；main 分支关闭「线性历史」限制（dev 保持不变）
+- [x] 2. `scripts/setup-branch-protection.sh` 按 main/dev 差异化重写（main：PR 必须 + 允许 merge；dev：PR 必须 + squash-only），注释引用本 spec
 
 ## 一次性对齐
 
-- [ ] 3. ⚠️ 留存证据：`git rev-parse origin/main`（对齐前 main SHA，写入本文件证据节，可秒级回滚）
-- [ ] 4. ⚠️ 对齐手术：`git checkout main && git reset --hard origin/dev`（内容零变化，`diff` 已实证为空）+ 越保护推送（owner 权限）；执行后 `merge-base(main, dev) == main HEAD` 验证
+- [x] 3. ⚠️ 留存证据：`git rev-parse origin/main`（对齐前 main SHA，写入本文件证据节，可秒级回滚）
+- [x] 4. ⚠️ 对齐手术：`git checkout main && git reset --hard origin/dev`（内容零变化，`diff` 已实证为空）+ 越保护推送（owner 权限）；执行后 `merge-base(main, dev) == main HEAD` 验证
 - [ ] 5. 通知团队：main 指针已移动，本地 `git fetch && git reset --hard origin/main` 同步
 
 ## 流程固化
 
-- [ ] 6. WORKFLOW.md 发布节改写：dev → main 一律 merge commit（含 rationale 引用本 spec）；删除「快照缝合」相关表述；新增治理节（若护栏红灯的处置流程）
-- [ ] 7. AGENTS.md 协作规范节同步（分支模型表格补「dev → main merge commit，main 恒为 dev 祖先」）
+- [x] 6. WORKFLOW.md 发布节改写：dev → main 一律 merge commit（含 rationale 引用本 spec）；删除「快照缝合」相关表述；新增治理节（若护栏红灯的处置流程）
+- [x] 7. AGENTS.md 协作规范节同步（分支模型表格补「dev → main merge commit，main 恒为 dev 祖先」）
 
 ## CI 护栏
 
-- [ ] 8. CI 新增 branch-align 校验（merge-base == main HEAD），PR 与定期双触发；失败文案指向 WORKFLOW.md 治理节
+- [x] 8. CI 新增 branch-align 校验（merge-base == dev HEAD），PR 与定期双触发；失败文案指向 WORKFLOW.md 治理节
 
 ## 验证（converge）
 
-- [ ] 9. 空跑验证：dev 上造一个无害提交 → PR dev → main → **merge commit 合并**（无冲突、无需缝合）→ 校验护栏绿 → revert 该提交（或以本 spec 文档合入作为首次实战：spec 三件随 dev → main merge commit 发布，一次验证全链）
-- [ ] 10. 证据回填本文件：对齐前后 SHA、发布 PR 链接、护栏 job 截图/日志
+- [ ] 9. 空跑验证：本治理提交合入 dev 后，随 dev → main 首次 **Merge Commit 发布**（无冲突、无需缝合）——即首次实战验证
+- [ ] 10. 证据回填本文件：对齐前后 SHA、发布 PR 链接、护栏 job 日志
 
 ## 验收证据表
 
 | 场景 | 入口 | 产物 | 状态 |
 |---|---|---|---|
-| 对齐前 main SHA（回滚锚点） | git rev-parse origin/main | 待执行回填 | 待执行 |
-| 对齐后 main == dev 同 SHA | git log | 待执行回填 | 待执行 |
-| 首次 merge commit 发布 PR | gh pr | 待执行回填 | 待执行 |
-| branch-align CI job | CI | 待执行回填 | 待执行 |
+| 对齐前 main SHA（回滚锚点） | git rev-parse origin/main | `c068da4` | 已留存（可 `git push --force origin c068da4:main` 秒级回滚） |
+| 仓库设置终态 | gh api repos/:repo | `allow_merge_commit=true` + squash 保留；main：linear 关、force push 禁、reviews（dismiss_stale）全保留 | PASS |
+| 手术窗口 | 临时 reviews=null + force=true → 对齐 → 全恢复 | 窗口仅覆盖指针移动一步，保护已全量恢复 | PASS |
+| 对齐后 main == dev 同 SHA | git log | `70c71e1` == `70c71e1`，`merge-base == main HEAD`，零分叉 | PASS |
+| 首次 merge commit 发布 PR | gh pr | 待本治理合入 dev 后执行回填 | 待执行 |
+| branch-align CI job | CI | 随本治理提交首次运行回填 | 待执行 |

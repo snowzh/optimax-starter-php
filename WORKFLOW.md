@@ -48,6 +48,13 @@ feat/<slug> / fix/<slug> / chore/<slug>…
        完成后 Squash Merge 回 dev 并删除——不作为长期分支保留
 ```
 
+**合并方式（main/dev 差异化，spec branch-history-governance）**：
+
+- 开发分支 → dev：**Squash Merge**（功能压平）+ 线性历史
+- **dev → main：Merge Commit**（保留 dev 完整拓扑）——main 恒含 dev 全历史，发布 PR 恒可自动合并；
+  squash-only 曾使每次发布产生全新 SHA 永久分叉，靠「快照缝合」手工绕过（#6/#10/#14），已治理废弃
+- **护栏**：CI `branch-align` job 校验 `merge-base(main, dev) == dev HEAD`（dev 全历史已含于 main），分叉即红——红灯处置见 spec 治理节
+
 ### 维护规范（文档级约束，无条件生效）
 
 以上分支规则**不以托管平台能力为前提**：即使分支保护未启用（如 GitHub 私有仓库免费版），规则依然完全有效，依靠以下三层执行：
@@ -60,7 +67,7 @@ feat/<slug> / fix/<slug> / chore/<slug>…
 
 | 托管形态 | 落地方式 |
 |---|---|
-| GitHub 公有仓库（免费版支持保护规则） | 执行 `scripts/setup-branch-protection.sh <owner/repo>`：main/dev 保护（必须 PR、含管理员、线性历史）+ 仅 Squash 合并 + 合并后删分支 |
+| GitHub 公有仓库（免费版支持保护规则） | 执行 `scripts/setup-branch-protection.sh <owner/repo>`：dev 保护（必须 PR、含管理员、线性历史、squash-only）+ main 保护（必须 PR、**允许 merge commit 非线性**）+ 合并后删分支 |
 | GitHub 私有仓库（免费版无保护规则） | 跳过脚本，**文档级维护规范单独生效**（见上）；团队扩张时建议升级计划开启保护，或迁移至支持保护的托管形态 |
 
 ## 协作通用流程（implement → 合并，全栈适用）
@@ -68,7 +75,7 @@ feat/<slug> / fix/<slug> / chore/<slug>…
 1. **建分支**：从 `dev` 切出（命名遵循 `conventional-branch` 技能），尽早开 Draft PR（**目标 dev**）
 2. **PR**：diff 精炼（约 ≤400 行）；CI 全绿 + 处理 AI Review 评论 + 人工 Approve
 3. **合并到 dev**：Squash Merge → 删除开发分支（不长期保留）
-4. **dev → main**：发布时刻由 dev 向 main 发 PR，合并后触发 prod 发布（见 `DEPLOYMENT.md` 发布流程）
+4. **dev → main**：发布时刻由 dev 向 main 发 PR，**Merge Commit 合并**（保留拓扑，见分支模型节）；合并后触发 prod 发布（见 `DEPLOYMENT.md` 发布流程）——**发布后无需任何缝合/回吸收动作**
 5. **收尾**：`git status` / `git diff --check` 干净；跟踪 CI 至绿；提交信息附验证结果
 
 `FRONTEND.md` / `BACKEND.md` 的实现细节各自展开，本节为两者共同引用的协作真相源。

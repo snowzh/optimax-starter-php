@@ -17,6 +17,53 @@ permissions:
   contents: read
 
 jobs:
+  # ── 分支历史护栏（spec branch-history-governance）：
+  #    dev 全历史必须已含于 main（merge-base == dev HEAD），分叉即红。
+  #    squash 发布会致 main 产生 dev 不含的 SHA 永久分叉——曾靠「快照缝合」绕过（#6/#10/#14），
+  #    现以护栏机器发现，处置流程见 specs/branch-history-governance/tasks.md ──
+  branch-align:
+    name: branch-align（分支历史零分叉）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: 按触发分支双向校验历史关系
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref || github.ref_name }}
+        run: |
+          git fetch origin dev main --quiet
+          BASE="$(git merge-base origin/main origin/dev)"
+          MAIN="$(git rev-parse origin/main)"
+          DEV="$(git rev-parse origin/dev)"
+          echo "merge-base(main, dev) = ${BASE}"
+          echo "origin/main HEAD       = ${MAIN}"
+          echo "origin/dev  HEAD       = ${DEV}"
+          case "${EVENT}:${BASE_REF}" in
+            push:dev|pull_request:dev)
+              # dev 侧：main 全历史必须已含于 dev（防 main 侧孤儿提交，如快照缝合残留）
+              if [ "$BASE" != "$MAIN" ]; then
+                echo "::error::main 含 dev 没有的历史（孤儿/缝合残留）。"
+                echo "::error::处置：按 specs/branch-history-governance/ 治理节对齐。"
+                exit 1
+              fi
+              echo "✓ main 全历史已含于 dev" ;;
+            push:main)
+              # main 侧（发布合并后）：dev 全历史必须已含于 main
+              if [ "$BASE" != "$DEV" ]; then
+                echo "::error::发布后 main 未含 dev 全历史（合并方式可能偏离 Merge Commit 约定）。"
+                echo "::error::处置：按 specs/branch-history-governance/ 治理节检查发布方式。"
+                exit 1
+              fi
+              echo "✓ dev 全历史已含于 main（发布拓扑健康）" ;;
+            pull_request:main)
+              # 发布 PR 打开期间 dev 领先 main 属预期（PR 即为补齐）——合并后由 push:main 验证
+              echo "发布 PR 期间跳过单向断言；合并后由 push main 触发终验" ;;
+            *)
+              echo "非 dev/main 目标事件，跳过" ;;
+          esac
+
   # ── 后端门禁：Pint → Pest（pgsql service）→ 迁移可执行 → api 镜像构建 ──
   api:
     name: api（Pint / Pest / migrate / image）
