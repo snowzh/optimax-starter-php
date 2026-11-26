@@ -105,7 +105,6 @@ export async function pickSelectOption(
   // 不接受输入，跳过（其列表通常很短、全量渲染），直接按可见项选择
   try {
     await selectLocator.fill(optionText, { timeout: 3000 });
-    await page.waitForTimeout(300);
   } catch {
     // input 不可编辑：保持已展开状态直接选择
   }

@@ -8,7 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { App, Button, Space, Tabs, Tag } from 'antd';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { componentIndex } from '@/services/generated/component';
 import { productIndex } from '@/services/generated/product';
 import {
@@ -56,7 +56,7 @@ const disabledActionStyle: React.CSSProperties = {
 };
 
 /**
- * 库存台账：产品件 / 零件件 / 流水三 Tab。
+ * 库存台账：产品 / 零件 / 流水三 Tab。
  * 入库弹窗选型号后预填编号前缀（决策 3 推荐格式：型号编码-实例编码）；
  * 出库弹窗选类型（领用/发货/报废），4007 非在库由后端拒绝、统一拦截提示。
  */
@@ -105,6 +105,13 @@ const StockPage: React.FC = () => {
     }
   };
 
+  // 型号筛选下拉选项：挂载即拉（原仅入库按钮触发，筛选下拉始终为空）；
+  // 拉取失败（如仅有 stock.view 而无型号域 view 权限）静默降级为空下拉，编号搜索仍可用
+  useEffect(() => {
+    loadOptions('product').catch(() => {});
+    loadOptions('component').catch(() => {});
+  }, []);
+
   const unitColumns = (
     kind: 'product' | 'component',
   ): ProColumns<UnitRow>[] => [
@@ -132,9 +139,12 @@ const StockPage: React.FC = () => {
       title: '型号筛选',
       dataIndex: kind === 'product' ? 'product_id' : 'component_id',
       hideInTable: true,
+      // valueType 缺省会被 ProTable 渲染为文本框：用户误输编码文本将以 product_id 直发后端 422
+      valueType: 'select',
       fieldProps: {
         showSearch: true,
         allowClear: true,
+        optionFilterProp: 'label',
         placeholder: '选择型号',
         options: kind === 'product' ? productOptions : componentOptions,
       },
@@ -209,7 +219,7 @@ const StockPage: React.FC = () => {
       search: false,
       render: (_, record) => (
         <Tag>
-          {record.subject_type === 'product_unit' ? '产品件' : '零件件'}
+          {record.subject_type === 'product_unit' ? '产品' : '零件'}
         </Tag>
       ),
     },
@@ -219,7 +229,14 @@ const StockPage: React.FC = () => {
       render: (_, record) => record.operator?.name ?? '—',
     },
     { title: '备注', dataIndex: 'remark', search: false, ellipsis: true },
-    { title: '时间', dataIndex: 'created_at', search: false, width: 180 },
+    // 相对时间展示（pro-field fromNow：近期「几分钟前」直观），hover Tooltip 见完整时间
+    {
+      title: '时间',
+      dataIndex: 'created_at',
+      valueType: 'fromNow',
+      search: false,
+      width: 120,
+    },
   ];
 
   return (
@@ -230,7 +247,7 @@ const StockPage: React.FC = () => {
         items={[
           {
             key: 'product',
-            label: '产品件',
+            label: '产品',
             children: (
               <ProTable<UnitRow>
                 headerTitle="产品库存件"
@@ -278,7 +295,7 @@ const StockPage: React.FC = () => {
           },
           {
             key: 'component',
-            label: '零件件',
+            label: '零件',
             children: (
               <ProTable<UnitRow>
                 headerTitle="零件库存件"
@@ -359,9 +376,9 @@ const StockPage: React.FC = () => {
         ]}
       />
 
-      {/* 产品件入库：选型号后预填编号前缀（决策 3：型号编码 + 实例编码） */}
+      {/* 产品入库：选型号后预填编号前缀（决策 3：型号编码 + 实例编码） */}
       <ModalForm<{ product_id: number; serial_no: string; remark?: string }>
-        title="产品件入库"
+        title="产品入库"
         width={480}
         open={productStoreOpen}
         modalProps={{ destroyOnHidden: true }}
@@ -395,15 +412,21 @@ const StockPage: React.FC = () => {
         <ProFormText
           name="serial_no"
           label="实例编号"
-          placeholder={`${serialPrefix}后接本实例编码，全局唯一（如 ${serialPrefix}0001）`}
+          placeholder="本实例流水编码（前缀已由型号锁定）"
+          // addon 前缀=型号编码，不可修改（规则从文本提示升级为交互锁定）
+          fieldProps={{ addonBefore: serialPrefix || undefined }}
+          // 提交时拼接锁定前缀：serialPrefix 形如「CODE-」
+          transform={(value) =>
+            value ? { serial_no: `${serialPrefix}${value}` } : { serial_no: value }
+          }
           rules={[{ required: true, message: '请输入实例编号' }]}
         />
         <ProFormText name="remark" label="备注" placeholder="选填" />
       </ModalForm>
 
-      {/* 零件件入库 */}
+      {/* 零件入库 */}
       <ModalForm<{ component_id: number; serial_no: string; remark?: string }>
-        title="零件件入库"
+        title="零件入库"
         width={480}
         open={componentStoreOpen}
         modalProps={{ destroyOnHidden: true }}
@@ -439,7 +462,13 @@ const StockPage: React.FC = () => {
         <ProFormText
           name="serial_no"
           label="实例编号"
-          placeholder={`${serialPrefix}后接本实例编码，全局唯一（如 ${serialPrefix}0001）`}
+          placeholder="本实例流水编码（前缀已由型号锁定）"
+          // addon 前缀=型号编码，不可修改（规则从文本提示升级为交互锁定）
+          fieldProps={{ addonBefore: serialPrefix || undefined }}
+          // 提交时拼接锁定前缀：serialPrefix 形如「CODE-」
+          transform={(value) =>
+            value ? { serial_no: `${serialPrefix}${value}` } : { serial_no: value }
+          }
           rules={[{ required: true, message: '请输入实例编号' }]}
         />
         <ProFormText name="remark" label="备注" placeholder="选填" />

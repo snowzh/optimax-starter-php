@@ -8,6 +8,7 @@ import {
 } from '@ant-design/pro-components';
 import { useAccess } from '@umijs/max';
 import { Alert, App, Button, Drawer, Space, Table, Tag } from 'antd';
+import dayjs from 'dayjs';
 import React, { useRef, useState } from 'react';
 import { productIndex } from '@/services/generated/product';
 import {
@@ -64,7 +65,7 @@ const ProductionPage: React.FC = () => {
   const [consumed, setConsumed] = useState<
     { id: number; serial_no: string; component_id: number }[]
   >([]);
-  // 在库零件件候选（按型号过滤后的分页查询走搜索框）
+  // 在库零件候选（按型号过滤后的分页查询走搜索框）
   const [componentOptions, setComponentOptions] = useState<
     { label: string; value: number; component_id: number }[]
   >([]);
@@ -112,7 +113,7 @@ const ProductionPage: React.FC = () => {
     setOutputPrefix(`${data.product_code}-`);
   };
 
-  /** 按型号搜索在库零件件（供消耗多选取件） */
+  /** 按型号搜索在库零件（供消耗多选取件） */
   const searchComponentUnits = async (componentId: number, keyword: string) => {
     const res = await stockComponentUnitsIndex({
       component_id: componentId,
@@ -126,13 +127,22 @@ const ProductionPage: React.FC = () => {
       serial_no: string;
       component_id: number;
     }[];
-    setComponentOptions(
-      items.map((u) => ({
+    // 保留已选编号的元数据：下一次搜索不可使此前选择丢失。
+    setComponentOptions((previous) => {
+      const incoming = items.map((u) => ({
         label: u.serial_no,
         value: Number(u.id),
         component_id: u.component_id,
-      })),
-    );
+      }));
+      const retained = previous.filter((option) =>
+        consumed.some((unit) => unit.id === option.value),
+      );
+      return [
+        ...new Map(
+          [...retained, ...incoming].map((option) => [option.value, option]),
+        ).values(),
+      ];
+    });
   };
 
   const historyColumns: ProColumns<RecordRow>[] = [
@@ -169,7 +179,14 @@ const ProductionPage: React.FC = () => {
       render: (_, record) => record.operator?.name ?? '—',
     },
     { title: '备注', dataIndex: 'remark', search: false, ellipsis: true },
-    { title: '时间', dataIndex: 'created_at', search: false, width: 180 },
+    // 相对时间展示（pro-field fromNow），hover Tooltip 见完整时间
+    {
+      title: '时间',
+      dataIndex: 'created_at',
+      valueType: 'fromNow',
+      search: false,
+      width: 120,
+    },
     {
       title: '操作',
       valueType: 'option',
@@ -323,7 +340,7 @@ const ProductionPage: React.FC = () => {
             {/* 消耗件选择：按型号搜索在库件（决策 6：操作者指定具体编码） */}
             <Space direction="vertical" style={{ width: '100%' }} size={8}>
               <span style={{ fontWeight: 500 }}>
-                消耗零件件（按编号搜索选取，仅列在库）
+                消耗零件（按编号搜索选取，仅列在库）
               </span>
               {bom.lines.map((line) => (
                 <Space key={line.position_id} wrap>
@@ -418,7 +435,7 @@ const ProductionPage: React.FC = () => {
                 pagination={false}
                 dataSource={detail.consumptions ?? []}
                 columns={[
-                  { title: '零件件编号', dataIndex: 'serial_no' },
+                  { title: '零件编号', dataIndex: 'serial_no' },
                   {
                     title: '型号',
                     render: (_: any, r: any) => (
@@ -429,7 +446,10 @@ const ProductionPage: React.FC = () => {
               />
             </div>
             <div>经手人：{detail.operator?.name ?? '—'}</div>
-            <div>时间：{detail.created_at}</div>
+            {/* 详情场景看单次事实，展示精确时间（列表侧为相对时间） */}
+            <div>
+              时间：{dayjs(detail.created_at).format('YYYY-MM-DD HH:mm:ss')}
+            </div>
             {detail.remark && <div>备注：{detail.remark}</div>}
           </Space>
         )}

@@ -13,7 +13,9 @@ async function openMaterialPage(
   urlPattern: RegExp,
 ) {
   await page.getByText('物料管理', { exact: true }).first().click();
+  const loaded = page.waitForResponse((response) => response.url().includes('/api/v1/material/products?') && response.request().method() === 'GET');
   await page.getByRole('menuitem', { name: menuItem }).click();
+  await loaded;
   await expect(page).toHaveURL(urlPattern);
 }
 
@@ -48,6 +50,8 @@ test.describe('产品型号', () => {
 
       // 取消弹窗后行内预置型号可见（API 落库即渲染）
       await dialog.getByRole('button', { name: /取\s*消/ }).click().catch(() => {});
+      await page.getByPlaceholder('编码 / 名称').fill(`MAT-PRD-${stamp}`);
+      await page.getByRole('button', { name: /查\s*询/ }).click();
       const row = page.locator('tbody tr', { hasText: `MAT-PRD-${stamp}` });
       await expect(row).toBeVisible({ timeout: 15_000 });
       await expect(row.getByText('E2E 型号')).toBeVisible();
@@ -83,6 +87,53 @@ test.describe('产品型号', () => {
     }
   });
 
+  test('分页翻页：切每页 10 条后第 2 页可见末件、首页件不出现', async ({ page, request }) => {
+    const adminToken = await loginViaApi(request, 'admin', 'admin123');
+    const stamp = Date.now();
+    // 预置 11 件：pageSize=10 时第 2 页恰余 1 件（矩阵 2 分页翻页细项）
+    const ids: number[] = [];
+    for (let i = 1; i <= 11; i++) {
+      const created = await apiJson(request, adminToken, 'POST', '/api/v1/material/products', {
+        code: `MAT-PAGE-${stamp}-${String(i).padStart(3, '0')}`,
+        name: `翻页型号 ${i}`,
+      });
+      ids.push(created.data.id as number);
+    }
+
+    try {
+      await loginViaUi(page, 'admin', 'admin123');
+      await openMaterialPage(page, '产品型号', /\/material\/product$/);
+      await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 });
+
+      // keyword 收缩到自建集合，隔离种子与并用例数据
+      await page.getByPlaceholder('编码 / 名称').fill(`MAT-PAGE-${stamp}`);
+      await page.getByRole('button', { name: /查\s*询/ }).click();
+      await expect(
+        page.locator('tbody tr', { hasText: `MAT-PAGE-${stamp}-001` }),
+      ).toBeVisible({ timeout: 15_000 });
+
+      // 每页条数切到 10（默认 20 单页可装下 11 件，翻不了页）
+      await pickSelectOption(
+        page,
+        page.locator('.ant-pagination-options .ant-select').first(),
+        '10 条',
+      );
+
+      // 翻到第 2 页：末件可见、首页件不在当前页
+      await page.locator('.ant-pagination-item-2').click();
+      await expect(
+        page.locator('tbody tr', { hasText: `MAT-PAGE-${stamp}-011` }),
+      ).toBeVisible({ timeout: 15_000 });
+      await expect(
+        page.locator('tbody tr', { hasText: `MAT-PAGE-${stamp}-001` }),
+      ).toHaveCount(0);
+    } finally {
+      for (const id of ids) {
+        await apiJson(request, adminToken, 'DELETE', `/api/v1/material/products/${id}`).catch(() => {});
+      }
+    }
+  });
+
   test('编辑型号名称行内即时更新', async ({ page, request }) => {
     const adminToken = await loginViaApi(request, 'admin', 'admin123');
     const stamp = Date.now();
@@ -96,6 +147,8 @@ test.describe('产品型号', () => {
       await openMaterialPage(page, '产品型号', /\/material\/product$/);
       await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 });
 
+      await page.getByPlaceholder('编码 / 名称').fill(`MAT-EDIT-1-${stamp}`);
+      await page.getByRole('button', { name: /查\s*询/ }).click();
       const row = page.locator('tbody tr', { hasText: `MAT-EDIT-1-${stamp}` });
       await row.getByText('编辑', { exact: true }).click();
       const dialog = page.getByRole('dialog', { name: `编辑型号：MAT-EDIT-1-${stamp}` });
@@ -119,7 +172,7 @@ test.describe('产品型号', () => {
       code: `MAT-DEL-1-${stamp}`, name: '有库存型号',
     });
     await apiJson(request, adminToken, 'POST', '/api/v1/material/product-units', {
-      product_id: withUnit.data.id, serial_no: 'MAT-DEL-1-0001',
+      product_id: withUnit.data.id, serial_no: `MAT-DEL-1-${stamp}-0001`,
     });
 
     try {
@@ -152,17 +205,16 @@ test.describe('产品型号', () => {
         page.locator('tbody tr', { hasText: `MAT-DEL-0-${stamp}` }),
       ).toHaveCount(0, { timeout: 15_000 });
     } finally {
-      // units 先删（FK restrict），再删型号
-      const list = await apiJson(
-        request,
-        adminToken,
-        'GET',
-        '/api/v1/material/product-units?serial=MAT-DEL-1-' + stamp,
-      );
+      // 库存流水保留历史；型号存在实例时禁止删除，清理只转终态。
+      const list = await apiJson(request, adminToken, 'GET',
+        `/api/v1/material/product-units?serial=MAT-DEL-1-${stamp}`);
       for (const item of list.data.items ?? []) {
-        await apiJson(request, adminToken, 'DELETE', `/api/v1/material/product-units/${item.id}/out`, { type: 3 });
+        if (item.status === 1) {
+          const result = await apiJson(request, adminToken, 'POST',
+            `/api/v1/material/product-units/${item.id}/out`, { type: 3 });
+          expect(result.code).toBe(0);
+        }
       }
-      await apiJson(request, adminToken, 'DELETE', `/api/v1/material/products/${withUnit.data.id}`);
     }
   });
 });

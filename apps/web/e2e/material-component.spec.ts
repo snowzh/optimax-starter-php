@@ -44,13 +44,15 @@ test.describe('零件型号', () => {
       await expect(dialog).toBeVisible();
       await dialog.getByRole('button', { name: /取\s*消/ }).click().catch(() => {});
 
+      await page.getByPlaceholder('编码 / 名称').fill(`MAT-CMP-${stamp}`);
+      await page.getByRole('button', { name: /查\s*询/ }).click();
       // 预置行可见
       const row = page.locator('tbody tr', { hasText: `MAT-CMP-${stamp}` });
       await expect(row).toBeVisible();
       await expect(row.getByText('零件探针')).toBeVisible();
 
       // 关键字筛选：仅剩探针行
-      await page.getByPlaceholder('编码 / 名称').fill('零件探针');
+      await page.getByPlaceholder('编码 / 名称').fill(`MAT-CMP-${stamp}`);
       await page.getByRole('button', { name: /查\s*询/ }).click();
       await expect(
         page.locator('tbody tr', { hasText: `MAT-CMP-${stamp}` }),
