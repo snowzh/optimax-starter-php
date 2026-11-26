@@ -50,6 +50,8 @@
 - **BOM 参数名**：`productionBom` 传 `productId` 应为 `product_id`（as any 绕过类型检查放走了 bug，已修正并消灭该处 as any）
 - **antd Select 虚拟化**：大列表目标项不在可视 DOM——统一 helper「先过滤输入再选择」；非搜索 Select（ProTable valueEnum 筛选）fill 兼容跳过
 - **E2E 数据时间戳化**：固定前缀探针在失败轮次残留致下轮预置撞 3002 恶性循环——全部时间戳唯一
+- **演示库重置惯例（2026-11-26）**：E2E 在 compose 库跑且「自建自清」只转终态不删行（append-only 流水无删除路径、带实例型号被 4008 拒删）——跑过 E2E 的演示库会累积 `MAT-` 探针残留（型号/实例/流水/生产记录）。演示交付前以 `docker compose exec api php artisan migrate:fresh --seed --force` 整库重置为纯规划数据（约 2.6s，幂等）；CI 每轮本就全新库不受影响
+- **发起生产架构改版（2026-11-26 用户要求）**：ModalForm 弹窗工单改为独立页 `/material/production/create`（hideInMenu，access=material.production.manage），消耗件由 Select 搜索（候选 options 状态存在时序竞态，实测「暂无数据」/裸 id 两类缺陷）改为**弹窗列表选择**——分页 ProTable + 编号搜索 + 跨页多选（preserveSelectedRowKeys + 元数据缓存），服务端分页彻底消除候选竞态；已选 chips 页面级可移除；失效件（不在库）被服务端过滤不进列表。E2E 交互段同批重写（独立页跳转/chip 移除/弹窗勾选/4011 竞争替换全链），越权用例补 create 路由拦截断言；49 例全绿
 - **生产历史列表**：补 keyword 过滤（命中型号编码/产出件编号），后端 Repository + Pest 用例 + 前端搜索列同批落地（矩阵 20 的补充增强）
 - **台账状态筛选域（2026-11-26 用户手动检查发现）**：StockUnitQueryRequest 继承基类面向用户启停的 `status in:0,1` 未覆盖，库存状态 2-4 筛选一律 422/1001（既有 Pest 只测 status=1 碰巧在域内未拦）——拆分 ProductUnitQueryRequest（in:1,2,3）/ ComponentUnitQueryRequest（in:1,2,3,4），补状态域护栏用例（产品 2/3 命中 + 4 拒绝、零件 3/4 命中）
 - **型号筛选渲染为文本框（2026-11-26 用户手动检查发现，nginx 日志实证 product_id=编码文本）**：库存页「型号筛选」列缺 `valueType: 'select'`，ProTable 缺省渲染文本框且 options 从未挂载加载（原仅入库按钮触发）——用户按 placeholder 误输编码以 product_id 直发后端 422。修复：列加 valueType + optionFilterProp，挂载即拉 options（无型号域 view 权限时静默降级空下拉）；E2E 补矩阵 12「型号筛选」用例（Select 交互 + 干扰行断言，回归护栏）

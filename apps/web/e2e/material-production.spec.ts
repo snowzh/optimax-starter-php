@@ -3,7 +3,8 @@ import { apiJson, loginViaApi, loginViaUi, pickSelectOption } from './helpers';
 
 /**
  * 物料·生产域 E2E（spec material-mgmt 测试矩阵 18-21 页面列）：
- * BOM 渲染与瓶颈警示 → 工单提交闭环 → 历史详情消耗明细。
+ * 发起生产独立页（/material/production/create）→ BOM 渲染 →
+ * 消耗件弹窗列表选择（分页表格 + 多选）→ 提交 → 历史行与详情。
  * 数据 API 预置（型号/位置/零件入库），UI 走完整工单交互。
  */
 
@@ -19,9 +20,9 @@ async function openMaterialPage(
 }
 
 test.describe('生产工单', () => {
-  test('完整闭环：BOM 渲染 → 选消耗件 → 提交 → 历史行与详情', async ({ page, request }) => {
-    // 本用例含 BOM 渲染 + 4 轮编号搜索多选 + 详情断言，交互重——放宽单用例上限
-    test.setTimeout(90_000);
+  test('完整闭环：独立页 BOM 渲染 → 弹窗列表选件 → 提交 → 历史行与详情', async ({ page, request }) => {
+    // 本用例含独立页跳转 + BOM 渲染 + 弹窗列表选择 + 真实竞争 + 详情断言——放宽单用例上限
+    test.setTimeout(150_000);
     const adminToken = await loginViaApi(request, 'admin', 'admin123');
     const stamp = Date.now();
 
@@ -60,74 +61,70 @@ test.describe('生产工单', () => {
     try {
       await loginViaUi(page, 'admin', 'admin123');
       await openMaterialPage(page, '生产工单', /\/material\/production$/);
-      await expect(page.getByRole('button', { name: /发起生产/ })).toBeVisible();
 
-      // 发起生产 → 选型号 → BOM 渲染（两位置行 + 瓶颈提示）
+      // 发起生产 → 独立页
       await page.getByRole('button', { name: /发起生产/ }).click();
-      const dialog = page.getByRole('dialog', { name: '发起生产（零件 → 产品）' });
-      await pickSelectOption(page, dialog.locator('.ant-form-item', { hasText: '产品型号' }).getByRole('combobox'), `MAT-PRD-${stamp}`);
-      await expect(dialog.getByText('可生产数（瓶颈）：1 件')).toBeVisible({
+      await page.waitForURL(/\/material\/production\/create$/);
+
+      // 选产品 → BOM 渲染（两位置行 + 瓶颈提示）
+      await pickSelectOption(page, page.getByRole('combobox'), `MAT-PRD-${stamp}`);
+      await expect(page.getByText('可生产数（瓶颈）：1 件')).toBeVisible({
         timeout: 15_000,
       });
-      const bomTable = dialog.locator('tbody');
+      const bomTable = page.locator('tbody');
       await expect(bomTable.getByText('主孔位')).toBeVisible();
       await expect(bomTable.getByText('驱动位')).toBeVisible();
       await expect(bomTable.getByText('闭环垫片')).toBeVisible();
 
-      // 选消耗件：垫片 3 + 电机 1（完整编号整串搜索——逐键序列会触发多次
-      // onSearch 请求且响应乱序，慢环境下选项不可靠，实测教训）
-      const pickUnits = async (code: string, serials: string[]) => {
-        for (const serial of serials) {
-          const select = dialog.locator('.ant-space').filter({ has: page.getByText(new RegExp(`^${code}（需`)) }).filter({ has: page.getByRole('combobox') }).last().getByRole('combobox');
-          await select.click();
-          await select.fill(serial);
-          const option = page
-            .locator('.ant-select-dropdown:visible .ant-select-item-option', {
-              hasText: serial,
-            })
-            .first();
-          await option.waitFor({ state: 'visible', timeout: 15_000 });
-          await option.click();
-        }
-        await page.keyboard.press('Escape');
-      };
-      await pickUnits(`MAT-WSH-${stamp}`, [
-        `MAT-WSH-${stamp}-0001`,
-        `MAT-WSH-${stamp}-0002`,
-        `MAT-WSH-${stamp}-0003`,
-      ]);
-      await pickUnits(`MAT-MTR-${stamp}`, [`MAT-MTR-${stamp}-0001`]);
-      await expect(dialog.getByText(/已选 4\s*件/)).toBeVisible();
+      // BOM 渲染后消耗件默认预选就位（每型号按用量自动勾选，免手选），
+      // 已选 chips 为完整编号 label（回归护栏：曾有裸 id 渲染缺陷）
+      await expect(page.getByText(/已选 4\s*件/)).toBeVisible({
+        timeout: 15_000,
+      });
+      const washerRow = page.locator('.ant-space').filter({ has: page.getByText(new RegExp(`^MAT-WSH-${stamp}（需`)) }).last();
+      await expect(washerRow.getByText(`MAT-WSH-${stamp}-0001`)).toBeVisible();
 
-      // 产出编号（预填前缀 型号编码-）
-      await dialog
-        .locator('input[id="serial_no"]')
-        .fill(`MAT-PRD-${stamp}-OUT1`);
+      // 产出编号：前缀锁定展示 + 默认流水预填（该型号首件 → 0001）
+      await expect(page.locator('input[id="serialFlow"]')).toHaveValue(
+        '0001',
+        { timeout: 15_000 },
+      );
 
-      // 真实竞争：已选件被另一操作者领走，后端 4011 必须提示且工单保留。
+      // 真实竞争：已选件被另一操作者领走，后端 4011 必须提示且页面停留。
       const unavailable = await apiJson(request, adminToken, 'POST',
         `/api/v1/material/component-units/${motorUnit.data.id}/out`, { type: 1 });
       expect(unavailable.code).toBe(0);
-      await dialog.getByRole('button', { name: /确\s*定/ }).click();
+      await page.getByRole('button', { name: /确定生产/ }).click();
       await expect(page.getByText('所选零件不存在、不在库或不属于该产品 BOM，无法用于生产').first()).toBeVisible();
-      await expect(dialog).toBeVisible();
-      // 用新入库的同型号件替换失效选择后再提交。
+      await expect(page).toHaveURL(/\/material\/production\/create$/);
+
+      // 用新入库的同型号件替换失效选择：页面级关闭失效 chip（按钮随已选清空
+      // 切换为「选择零件」）→ 弹窗列表勾选替换件（初始勾选为空，无幽灵项）
       const replacement = await apiJson(request, adminToken, 'POST', '/api/v1/material/component-units', {
         component_id: motorId, serial_no: `MAT-MTR-${stamp}-0002`,
       });
       expect(replacement.code).toBe(0);
-      const motorSelect = dialog.locator('.ant-space').filter({ has: page.getByText(`MAT-MTR-${stamp}（需 1）`, { exact: true }) }).filter({ has: page.getByRole('combobox') }).last();
-      await motorSelect.locator('.ant-select-selection-item-remove').click();
-      await pickUnits(`MAT-MTR-${stamp}`, [`MAT-MTR-${stamp}-0002`]);
-      // 提交 → 成功提示 + 历史新行
-      await dialog.getByRole('button', { name: /确\s*定/ }).click();
+      const motorRow = page.locator('.ant-space').filter({ has: page.getByText(`MAT-MTR-${stamp}（需 1）`, { exact: true }) }).last();
+      await motorRow.locator('.ant-tag', { hasText: `MAT-MTR-${stamp}-0001` }).locator('.anticon-close').click();
+      await motorRow.getByRole('button', { name: /选择零件/ }).click();
+      const picker = page.getByRole('dialog', { name: new RegExp(`选择 MAT-MTR-${stamp}`) });
+      await expect(picker).toBeVisible({ timeout: 15_000 });
+      const replacementRow = picker.locator('tbody tr', { hasText: `MAT-MTR-${stamp}-0002` });
+      await expect(replacementRow).toBeVisible({ timeout: 15_000 });
+      await replacementRow.getByRole('checkbox').check();
+      await picker.getByRole('button', { name: /确\s*定/ }).click();
+      await expect(motorRow.getByText(`MAT-MTR-${stamp}-0002`)).toBeVisible();
+
+      // 提交 → 成功提示 → 跳回生产记录页
+      await page.getByRole('button', { name: /确定生产/ }).click();
       await expect(page.getByText('生产完成：零件已消耗，产品已入库').first()).toBeVisible({
         timeout: 15_000,
       });
-      // 并发下历史列表增长：先 keyword 筛出目标行（防掉页）再断言
-      await page.getByPlaceholder('型号编码 / 产出编号').fill(`MAT-PRD-${stamp}-OUT1`);
+      await page.waitForURL(/\/material\/production$/);
+      // 并发下历史列表增长：先 keyword 筛出目标行（防掉页）再断言（默认流水 0001）
+      await page.getByPlaceholder('型号编码 / 产出编号').fill(`MAT-PRD-${stamp}-0001`);
       await page.getByRole('button', { name: /查\s*询/ }).click();
-      const historyRow = page.locator('tbody tr', { hasText: `MAT-PRD-${stamp}-OUT1` });
+      const historyRow = page.locator('tbody tr', { hasText: `MAT-PRD-${stamp}-0001` });
       await expect(historyRow).toBeVisible({ timeout: 15_000 });
       await expect(historyRow.getByRole('cell', { name: '4', exact: true })).toBeVisible();
 
@@ -173,16 +170,15 @@ test.describe('生产工单', () => {
     try {
       await loginViaUi(page, 'admin', 'admin123');
       await openMaterialPage(page, '生产工单', /\/material\/production$/);
-      await expect(page.getByRole('button', { name: /发起生产/ })).toBeVisible();
 
       await page.getByRole('button', { name: /发起生产/ }).click();
-      const dialog = page.getByRole('dialog', { name: '发起生产（零件 → 产品）' });
-      await pickSelectOption(page, dialog.locator('.ant-form-item', { hasText: '产品型号' }).getByRole('combobox'), `MAT-EMPTY-${stamp}`);
+      await page.waitForURL(/\/material\/production\/create$/);
+      await pickSelectOption(page, page.getByRole('combobox'), `MAT-EMPTY-${stamp}`);
       // 瓶颈警示：可生产数 0 + 缺料说明（提交侧 4010 由后端拒绝、Pest 已验证）
-      await expect(dialog.getByText('可生产数（瓶颈）：0 件')).toBeVisible({
+      await expect(page.getByText('可生产数（瓶颈）：0 件')).toBeVisible({
         timeout: 15_000,
       });
-      await expect(dialog.getByText(/零件在库量不足（4010）/)).toBeVisible();
+      await expect(page.getByText(/零件在库量不足（4010）/)).toBeVisible();
     } finally {
       // 位置随型号级联；型号无 units 可删，零件无 units 可删
       await apiJson(request, adminToken, 'DELETE', `/api/v1/material/products/${product.data.id}`).catch(() => {});

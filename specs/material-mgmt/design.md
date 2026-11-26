@@ -167,7 +167,8 @@ GET    /v1/material/production/{record}            详情（产出件 + 消耗�
 | `/material/product` | ProTable 型号列表 + ModalForm 登记/编辑 + **安装位置 Drawer**（子表格：位置名/零件型号/安装数量，增删改）+ 型号软删 Popconfirm（4008 提示） |
 | `/material/component` | ProTable + ModalForm（同款范式，无子表） |
 | `/material/stock` | 产品/零件双 Tab ProTable（型号/状态筛选、编号搜索、总数在库数统计）；入库 ModalForm（选型号后编号前缀以 addon 锁定展示、不可修改，仅输入流水段，提交时自动拼接 `{型号编码}-{流水}`）；行内出库 Popconfirm（类型选择） |
-| `/material/production` | 生产工单：选产品型号 → **BOM 展示表**（各位置零件用量/在库数/可生产数瓶颈）→ 消耗件多选（按编号搜索选取，仅列在库）→ 产出编号（预填）→ 提交；历史 ProTable + 详情 Drawer（消耗明细） |
+| `/material/production` | 生产记录 ProTable（keyword 过滤）+ 详情 Drawer（消耗明细）；「发起生产」按钮跳转独立页 |
+| `/material/production/create` | 发起生产独立页（hideInMenu，路由 access=material.production.manage）：选产品型号 → **BOM 展示表**（各位置零件用量/在库数/可生产数瓶颈）→ 消耗件**按型号弹窗列表选择**（分页 ProTable + 编号搜索 + 跨页多选，服务端分页无候选竞态；按用量默认预选，chips 可移除）→ 产出编号（前缀锁定 + 默认流水预填）→ 提交成功跳回记录页；4010/4011 页面停留供调整 |
 
 - 路由/access 四域接线；菜单新增「物料管理」分组；错误提示走统一信封拦截（4007-4011 文案见登记）
 - generated-service 经 `pnpm openapi` 重新生成（Scramble 文档为源）

@@ -49,17 +49,19 @@ for (const kind of ['product', 'component'] as const) {
     await page.getByRole('button', { name: /入库/ }).click();
     const dialog = page.getByRole('dialog', { name: `${label}入库` });
     await pickSelectOption(page, dialog.locator('.ant-form-item', { hasText: `${label}型号` }).getByRole('combobox'), code);
-    // 选型号后前缀锁定展示（addon 不可改），编号只输流水段
+    // 选型号后前缀锁定展示（addon 不可改），默认流水预填（首件 → 0001），免手填直接提交
     await expect(dialog.locator('.ant-input-group-addon')).toHaveText(`${code}-`);
-    await dialog.getByLabel('实例编号').fill('001');
+    await expect(dialog.getByLabel('实例编号')).toHaveValue('0001', {
+      timeout: 15_000,
+    });
     await dialog.getByRole('button', { name: /确\s*定/ }).click();
     await expect(dialog).toBeHidden();
     await page.getByLabel('编号搜索').fill(code);
     await page.getByRole('button', { name: /查\s*询/ }).click();
-    const row = page.locator('tbody tr', { hasText: `${code}-001` });
+    const row = page.locator('tbody tr', { hasText: `${code}-0001` });
     await expect(row.getByText('在库', { exact: true })).toBeVisible();
     await row.getByText('出库', { exact: true }).click();
-    const out = page.getByRole('dialog', { name: `出库：${code}-001` });
+    const out = page.getByRole('dialog', { name: `出库：${code}-0001` });
     await pickSelectOption(page, out.locator('.ant-form-item', { hasText: '出库类型' }).getByRole('combobox'), '领用出库');
     await out.getByRole('button', { name: /确\s*定/ }).click();
     await expect(row.getByText('已出库', { exact: true })).toBeVisible();

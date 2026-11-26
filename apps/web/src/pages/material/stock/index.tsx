@@ -1,5 +1,9 @@
 import { PlusOutlined } from '@ant-design/icons';
-import type { ActionType, ProColumns } from '@ant-design/pro-components';
+import type {
+  ActionType,
+  ProColumns,
+  ProFormInstance,
+} from '@ant-design/pro-components';
 import {
   ModalForm,
   ProFormSelect,
@@ -77,6 +81,9 @@ const StockPage: React.FC = () => {
     { label: string; value: number }[]
   >([]);
   const [serialPrefix, setSerialPrefix] = useState('');
+  // 入库弹窗表单实例：默认流水预填的落值通道
+  const productFormRef = useRef<ProFormInstance>(undefined);
+  const componentFormRef = useRef<ProFormInstance>(undefined);
 
   // 出库弹窗（目标行 + 域）
   const [outTarget, setOutTarget] = useState<UnitRow | null>(null);
@@ -381,6 +388,7 @@ const StockPage: React.FC = () => {
         title="产品入库"
         width={480}
         open={productStoreOpen}
+        formRef={productFormRef}
         modalProps={{ destroyOnHidden: true }}
         onOpenChange={setProductStoreOpen}
         onFinish={async (values) => {
@@ -402,9 +410,22 @@ const StockPage: React.FC = () => {
           options={productOptions}
           fieldProps={{
             showSearch: true,
-            onChange: (_value, option) => {
+            onChange: (_value: number, option) => {
               const label = String((option as { label?: string })?.label ?? '');
               setSerialPrefix(label.split('（')[0] + '-');
+              // 切换型号清空旧编号（前缀已随型号变化，残留流水无意义）
+              productFormRef.current?.setFieldsValue({ serial_no: undefined });
+              if (!_value) return;
+              // 默认流水：型号实例数 + 1（台账 append-only 无删除，total 即历史件数）；
+              // 用户已手填则不覆盖（预填晚到冲掉手填值是竞态 UX 缺陷）
+              stockProductUnitsIndex({ product_id: _value, page: 1, page_size: 1 })
+                .then((page) => {
+                  const form = productFormRef.current;
+                  if (form?.getFieldValue('serial_no')) return;
+                  const next = String((page.data.total ?? 0) + 1).padStart(4, '0');
+                  form?.setFieldsValue({ serial_no: next });
+                })
+                .catch(() => {});
             },
           }}
           rules={[{ required: true, message: '请选择产品型号' }]}
@@ -429,6 +450,7 @@ const StockPage: React.FC = () => {
         title="零件入库"
         width={480}
         open={componentStoreOpen}
+        formRef={componentFormRef}
         modalProps={{ destroyOnHidden: true }}
         onOpenChange={setComponentStoreOpen}
         onFinish={async (values) => {
@@ -452,9 +474,21 @@ const StockPage: React.FC = () => {
           options={componentOptions}
           fieldProps={{
             showSearch: true,
-            onChange: (_value, option) => {
+            onChange: (_value: number, option) => {
               const label = String((option as { label?: string })?.label ?? '');
               setSerialPrefix(label.split('（')[0] + '-');
+              // 切换型号清空旧编号（前缀已随型号变化，残留流水无意义）
+              componentFormRef.current?.setFieldsValue({ serial_no: undefined });
+              if (!_value) return;
+              // 默认流水：型号实例数 + 1；用户已手填则不覆盖（预填晚到冲掉手填值是竞态 UX 缺陷）
+              stockComponentUnitsIndex({ component_id: _value, page: 1, page_size: 1 })
+                .then((page) => {
+                  const form = componentFormRef.current;
+                  if (form?.getFieldValue('serial_no')) return;
+                  const next = String((page.data.total ?? 0) + 1).padStart(4, '0');
+                  form?.setFieldsValue({ serial_no: next });
+                })
+                .catch(() => {});
             },
           }}
           rules={[{ required: true, message: '请选择零件型号' }]}

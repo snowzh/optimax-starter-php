@@ -20,7 +20,12 @@ test.describe('物料越权', () => {
     ).toHaveCount(0);
 
     // 直达任一物料路由 → unAccessible 自动跳首个可访问页
-    for (const route of ['/material/product', '/material/stock']) {
+    // （含发起生产独立页：写操作路由按 material.production.manage 收口）
+    for (const route of [
+      '/material/product',
+      '/material/stock',
+      '/material/production/create',
+    ]) {
       await page.goto(route);
       await expect(page).toHaveURL(/\/welcome/, { timeout: 30_000 });
     }

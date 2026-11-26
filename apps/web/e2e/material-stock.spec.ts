@@ -39,13 +39,13 @@ test.describe('库存台账', () => {
       await page.getByRole('tab', { name: '零件' }).click();
       await expect(page.locator('tbody tr').first()).toBeVisible({ timeout: 15_000 });
 
-      // 入库弹窗：预填前缀提交
+      // 入库弹窗：选型号后默认流水预填（该型号已预置 1 件 → 0002），免手填直接提交
       await page.getByRole('button', { name: /入库/ }).click();
       const dialog = page.getByRole('dialog', { name: '零件入库' });
       await pickSelectOption(page, dialog.locator('.ant-form-item', { hasText: '零件型号' }).getByRole('combobox'), `MAT-STK-C1-${stamp}`);
-      await dialog
-        .getByLabel('实例编号')
-        .fill('0002');
+      await expect(dialog.getByLabel('实例编号')).toHaveValue('0002', {
+        timeout: 15_000,
+      });
       await dialog.getByRole('button', { name: /确\s*定/ }).click();
       await expect(dialog).toBeHidden();
       await page.getByPlaceholder('编号模糊搜索').fill(`MAT-STK-C1-${stamp}`);

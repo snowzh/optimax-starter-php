@@ -110,6 +110,14 @@ export default [
         component: './material/production',
         access: 'material.production.view',
       },
+      {
+        // 发起生产独立页（从生产记录页按钮进入）：写操作按 manage 收口
+        name: 'production-create',
+        path: '/material/production/create',
+        component: './material/production/create',
+        access: 'material.production.manage',
+        hideInMenu: true,
+      },
     ],
   },
   {
