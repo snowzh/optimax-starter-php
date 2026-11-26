@@ -80,7 +80,7 @@ apps/
 - 需求开发：所有需求经 `WORKFLOW.md` 的 spec 流程（specify → plan → tasks → implement ⇄ converge），产物随 git 提交至 `specs/<slug>/`
 - 提交信息：Conventional Commits（`feat:` / `fix:` / `docs:` / `refactor:` / `test:` / `chore:`），提交与分支命名遵循 `git-commit` / `conventional-branch` 技能
 - 测试：核心业务逻辑（Service 层）必须有对应 PHPUnit/Pest 测试；前端改动至少保证 lint 与构建通过
-- 分支模型：`main`（生产，仅接受 dev 的 PR）← `dev`（开发，仅接受开发分支的 PR）← `feat/xxx` 等开发分支（按 `conventional-branch` 技能命名，合并后即删）；**无论平台是否启用保护，直推 `main`/`dev` 一律禁止**——详见 `WORKFLOW.md` 分支模型与维护规范节
+- 分支模型：`main`（生产，仅接受 dev 的 PR）← `dev`（开发，仅接受开发分支的 PR）← `feat/xxx` 等开发分支（按 `conventional-branch` 技能命名，合并后即删）；**合并方式差异化（spec branch-history-governance）**——开发分支→dev 用 Squash，**dev→main 用 Merge Commit**（main 恒含 dev 全历史，squash 发布会致永久分叉）；**无论平台是否启用保护，直推 `main`/`dev` 一律禁止**——详见 `WORKFLOW.md` 分支模型与维护规范节
 
 ## AI 协作层结构
 
