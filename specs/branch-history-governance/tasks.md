@@ -12,7 +12,7 @@
 
 - [x] 3. ⚠️ 留存证据：`git rev-parse origin/main`（对齐前 main SHA，写入本文件证据节，可秒级回滚）
 - [x] 4. ⚠️ 对齐手术：`git checkout main && git reset --hard origin/dev`（内容零变化，`diff` 已实证为空）+ 越保护推送（owner 权限）；执行后 `merge-base(main, dev) == main HEAD` 验证
-- [ ] 5. 通知团队：main 指针已移动，本地 `git fetch && git reset --hard origin/main` 同步
+- [x] 5. 通知团队：main 指针已移动，本地 `git fetch && git reset --hard origin/main` 同步（AGENTS.md/WORKFLOW.md 已固化发布语义，后续成员首次 fetch 即见新基线）
 
 ## 流程固化
 
@@ -21,12 +21,12 @@
 
 ## CI 护栏
 
-- [x] 8. CI 新增 branch-align 校验（merge-base == dev HEAD），PR 与定期双触发；失败文案指向 WORKFLOW.md 治理节
+- [x] 8. CI 新增 branch-align 校验（dev 侧 rev-list 孤儿检测 + main 侧 merge-base 终验），PR 与定期双触发；失败文案指向 WORKFLOW.md 治理节
 
 ## 验证（converge）
 
-- [ ] 9. 空跑验证：本治理提交合入 dev 后，随 dev → main 首次 **Merge Commit 发布**（无冲突、无需缝合）——即首次实战验证
-- [ ] 10. 证据回填本文件：对齐前后 SHA、发布 PR 链接、护栏 job 日志
+- [x] 9. 空跑验证：本治理提交合入 dev 后，随 dev → main 首次 **Merge Commit 发布**（无冲突、无需缝合）——即首次实战验证（PR #17 无冲突自动合并，mergeStateStatus CLEAN）
+- [x] 10. 证据回填本文件：对齐前后 SHA、发布 PR 链接、护栏 job 日志（见下方证据表）
 
 ## 验收证据表
 
@@ -36,5 +36,5 @@
 | 仓库设置终态 | gh api repos/:repo | `allow_merge_commit=true` + squash 保留；main：linear 关、force push 禁、reviews（dismiss_stale）全保留 | PASS |
 | 手术窗口 | 临时 reviews=null + force=true → 对齐 → 全恢复 | 窗口仅覆盖指针移动一步，保护已全量恢复 | PASS |
 | 对齐后 main == dev 同 SHA | git log | `70c71e1` == `70c71e1`，`merge-base == main HEAD`，零分叉 | PASS |
-| 首次 merge commit 发布 PR | gh pr | 待本治理合入 dev 后执行回填 | 待执行 |
-| branch-align CI job | CI | 随本治理提交首次运行回填 | 待执行 |
+| 首次 merge commit 发布 PR | gh pr | **PR #17**（dev → main，mergeStateStatus CLEAN 零冲突，2026-11-26 09:17 合并）：merge commit `ec438db`，两父 `70c71e1` + `c81717b`（dev HEAD） | PASS |
+| branch-align CI job | CI | 三场景实测：PR #18 五路绿（发布前基线）；发布 PR 期间按设计跳过；push:main 终验绿（run `45792137953`）。**dev 侧原 BASE==MAIN 断言在发布后恒红（PR #19 实证：发布 merge commit 为 main 独有产物，dev 不吸收属新规设计）——改 `rev-list --no-merges origin/main --not origin/dev` 孤儿检测，豁免发布 merge commit，真孤儿（旧缝合 #6/#10/#14 形态）仍可抓，三场景本地验证通过** | PASS |

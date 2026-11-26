@@ -18,9 +18,7 @@ permissions:
 
 jobs:
   # ── 分支历史护栏（spec branch-history-governance）：
-  #    dev 全历史必须已含于 main（merge-base == dev HEAD），分叉即红。
-  #    squash 发布会致 main 产生 dev 不含的 SHA 永久分叉——曾靠「快照缝合」绕过（#6/#10/#14），
-  #    现以护栏机器发现，处置流程见 specs/branch-history-governance/tasks.md ──
+  #    双向分场景校验，分叉即红，处置流程见 specs/branch-history-governance/tasks.md ──
   branch-align:
     name: branch-align（分支历史零分叉）
     runs-on: ubuntu-latest
@@ -34,23 +32,25 @@ jobs:
           BASE_REF: ${{ github.event.pull_request.base.ref || github.ref_name }}
         run: |
           git fetch origin dev main --quiet
-          BASE="$(git merge-base origin/main origin/dev)"
           MAIN="$(git rev-parse origin/main)"
           DEV="$(git rev-parse origin/dev)"
-          echo "merge-base(main, dev) = ${BASE}"
-          echo "origin/main HEAD       = ${MAIN}"
-          echo "origin/dev  HEAD       = ${DEV}"
+          echo "origin/main HEAD = ${MAIN}"
+          echo "origin/dev  HEAD = ${DEV}"
           case "${EVENT}:${BASE_REF}" in
             push:dev|pull_request:dev)
-              # dev 侧：main 全历史必须已含于 dev（防 main 侧孤儿提交，如快照缝合残留）
-              if [ "$BASE" != "$MAIN" ]; then
-                echo "::error::main 含 dev 没有的历史（孤儿/缝合残留）。"
+              # dev 侧：main 不得有 dev 未含的孤儿提交（防缝合残留，如历史 #6/#10/#14 形态）。
+              # 发布 merge commit 豁免——它是 main 独有的发布产物，dev 按新规不吸收（无需缝合）。
+              ORPHANS="$(git rev-list --no-merges origin/main --not origin/dev)"
+              if [ -n "$ORPHANS" ]; then
+                echo "::error::main 含 dev 未含的孤儿提交（缝合残留）："
+                echo "$ORPHANS" | sed 's/^/  /'
                 echo "::error::处置：按 specs/branch-history-governance/ 治理节对齐。"
                 exit 1
               fi
-              echo "✓ main 全历史已含于 dev" ;;
+              echo "✓ main 无 dev 未含的孤儿提交（发布 merge commit 豁免）" ;;
             push:main)
               # main 侧（发布合并后）：dev 全历史必须已含于 main
+              BASE="$(git merge-base origin/main origin/dev)"
               if [ "$BASE" != "$DEV" ]; then
                 echo "::error::发布后 main 未含 dev 全历史（合并方式可能偏离 Merge Commit 约定）。"
                 echo "::error::处置：按 specs/branch-history-governance/ 治理节检查发布方式。"
