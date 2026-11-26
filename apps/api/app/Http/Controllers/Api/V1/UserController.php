@@ -14,7 +14,6 @@ use App\Services\UserService;
 use App\Support\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Pagination\LengthAwarePaginator;
 
 /**
  * 用户管理接口。权限点：读 → system.user.view；写 → system.user.manage（路由中间件收口）。
@@ -99,18 +98,5 @@ class UserController extends Controller
         return ApiResponse::success(['permissions' => $permissions]);
     }
 
-    /**
-     * 分页载荷统一为 {items, total, page, page_size}（契约见 spec design.md）。
-     *
-     * @param  class-string<UserResource>  $resourceClass
-     */
-    private function paginatePayload(LengthAwarePaginator $paginator, string $resourceClass): array
-    {
-        return [
-            'items' => $resourceClass::collection(collect($paginator->items())),
-            'total' => $paginator->total(),
-            'page' => $paginator->currentPage(),
-            'page_size' => $paginator->perPage(),
-        ];
-    }
+    // 分页载荷统一 {items, total, page, page_size}——由基类 Controller::paginatePayload 提供
 }

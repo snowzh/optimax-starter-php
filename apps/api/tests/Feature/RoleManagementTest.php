@@ -104,8 +104,8 @@ describe('权限矩阵变更生效', function (): void {
                 ->assertOk();
         };
 
-        // 初始：demo（viewer）持有 3 个 view 权限
-        expect(count($demoPermissions()))->toBe(3);
+        // 初始：demo（viewer）持有全部 view 码——system 3 + material 4（spec material-mgmt 扩容）
+        expect(count($demoPermissions()))->toBe(7);
 
         // 矩阵去掉全部权限 → demo 权限即时收缩为空
         $syncMatrix([]);
@@ -157,9 +157,13 @@ describe('权限清单', function (): void {
         $response->assertOk()->assertJsonPath('code', 0);
 
         $groups = collect($response->json('data'));
-        // 中文按 UTF-8 字节序：权(E6) < 用(E7) < 角(E8)
-        expect($groups->pluck('module_name')->sort()->values()->all())->toBe(['权限清单', '用户管理', '角色管理'])
-            ->and($groups->count())->toBe(3);
+        // 中文按 UTF-8 字节序 strcmp：产(E4) 库(E5) 权(E6) 生(E7949F)/用(E794A8) 角(E8) 零(E9)——
+        // material 四域（产品/零件/库存/生产）随 spec material-mgmt 扩容加入分组
+        expect($groups->pluck('module_name')->sort()->values()->all())->toBe([
+            '产品型号', '库存台账', '权限清单', '生产记录', '用户管理', '角色管理', '零件型号',
+        ])->and($groups->count())->toBe(7)
+            // 物料四域各含 view/manage 两码
+            ->and($groups->where('module', 'material.product')->first()['permissions'])->toHaveCount(2);
     });
 
     it('无权限用户访问返回 403/2003', function (): void {

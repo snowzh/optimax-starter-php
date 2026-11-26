@@ -8,7 +8,7 @@ class DatabaseSeeder extends Seeder
 {
     /**
      * Seed the application's database.
-     * 种子顺序固定：权限码 → 角色 → 用户（存在角色指派依赖）。
+     * 种子顺序固定：权限码 → 角色 → 用户 → 物料演示数据（小闭环 + 规模层）。
      */
     public function run(): void
     {
@@ -16,6 +16,8 @@ class DatabaseSeeder extends Seeder
             PermissionSeeder::class,
             RoleSeeder::class,
             UserSeeder::class,
+            MaterialDemoSeeder::class,
+            MaterialScaleSeeder::class,
         ]);
     }
 }

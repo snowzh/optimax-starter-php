@@ -73,6 +73,54 @@ export default [
     ],
   },
   {
+    // 物料管理（spec material-mgmt）：四域路由与权限一一对应
+    path: '/material',
+    name: 'material',
+    icon: 'appstore',
+    routes: [
+      {
+        path: '/material',
+        redirect: '/material/product',
+      },
+      {
+        name: 'product',
+        icon: 'profile',
+        path: '/material/product',
+        component: './material/product',
+        access: 'material.product.view',
+      },
+      {
+        name: 'component',
+        icon: 'tool',
+        path: '/material/component',
+        component: './material/component',
+        access: 'material.component.view',
+      },
+      {
+        name: 'stock',
+        icon: 'database',
+        path: '/material/stock',
+        component: './material/stock',
+        access: 'material.stock.view',
+      },
+      {
+        name: 'production',
+        icon: 'experiment',
+        path: '/material/production',
+        component: './material/production',
+        access: 'material.production.view',
+      },
+      {
+        // 发起生产独立页（从生产记录页按钮进入）：写操作按 manage 收口
+        name: 'production-create',
+        path: '/material/production/create',
+        component: './material/production/create',
+        access: 'material.production.manage',
+        hideInMenu: true,
+      },
+    ],
+  },
+  {
     name: 'exception',
     icon: 'warning',
     path: '/exception',

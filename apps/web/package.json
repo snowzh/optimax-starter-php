@@ -48,7 +48,7 @@
     "@umijs/lint": "^4.7.27",
     "@umijs/max": "^4.7.27",
     "@umijs/max-plugin-openapi": "^2.0.3",
-    "@vitest/browser-playwright": "^5.0.5",
+    "@vitest/browser-playwright": "5.0.5",
     "@vitest/coverage-v8": "5.0.5",
     "@vitest/ui": "5.0.5",
     "cross-env": "^10.1.0",
