@@ -2,16 +2,17 @@
 
 namespace App\Http\Requests;
 
-/** 库存实例列表查询（产品/零件共用形态：型号字段二选一） */
-class StockUnitQueryRequest extends ListQueryRequest
+/** 产品台账查询：型号/状态（1 在库 / 2 已出库 / 3 已报废）筛选 */
+class ProductUnitQueryRequest extends ListQueryRequest
 {
     /** @return array<string, array<int, string>> */
     public function rules(): array
     {
         return [
+            // 覆盖基类面向用户启停的 in:0,1——库存域状态见 ProductUnit 常量
             ...parent::rules(),
+            'status' => ['nullable', 'integer', 'in:1,2,3'],
             'product_id' => ['nullable', 'integer'],
-            'component_id' => ['nullable', 'integer'],
             'serial' => ['nullable', 'string', 'max:128'],
         ];
     }

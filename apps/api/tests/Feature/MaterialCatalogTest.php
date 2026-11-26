@@ -218,3 +218,23 @@ describe('越权', function (): void {
             ->assertForbidden()->assertJsonPath('code', 2003);
     });
 });
+
+it('零件型号列表筛选、详情、更新与软删均由 API 生效', function (): void {
+    $created = $this->postJson('/api/v1/material/components', [
+        'code' => 'CMP-CRUD', 'name' => '待更新零件',
+    ])->assertOk()->assertJsonPath('code', 0);
+    $id = $created->json('data.id');
+    $this->getJson('/api/v1/material/components?keyword=CMP-CRUD&page_size=1')
+        ->assertOk()->assertJsonPath('data.total', 1)
+        ->assertJsonPath('data.items.0.id', $id)->assertJsonPath('data.page_size', 1);
+    $this->getJson("/api/v1/material/components/{$id}")
+        ->assertOk()->assertJsonPath('data.code', 'CMP-CRUD');
+    $this->putJson("/api/v1/material/components/{$id}", ['name' => '已更新零件'])
+        ->assertOk()->assertJsonPath('data.name', '已更新零件');
+    $this->getJson("/api/v1/material/components/{$id}")
+        ->assertOk()->assertJsonPath('data.name', '已更新零件');
+    $this->deleteJson("/api/v1/material/components/{$id}")->assertOk()->assertJsonPath('code', 0);
+    $this->getJson('/api/v1/material/components?keyword=CMP-CRUD')
+        ->assertOk()->assertJsonPath('data.total', 0);
+    $this->assertSoftDeleted('components', ['id' => $id]);
+});

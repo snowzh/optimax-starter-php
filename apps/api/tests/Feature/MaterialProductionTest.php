@@ -151,14 +151,51 @@ describe('提交生产', function (): void {
         expect(ComponentUnit::whereIn('id', $washers)->where('status', ComponentUnit::STATUS_CONSUMED)->count())->toBe(4);
     });
 
-    it('产出编号重复返回 409/3002（全局编号域）', function (): void {
-        ProductUnit::create(['product_id' => $this->product->id, 'serial_no' => 'DUP-PROD']);
+    it('BOM 外型号消耗被拒（4011 附明细；防直发 API 消耗无关零件）', function (): void {
+        $washers = stockComponents($this->washer, 3);
+        $motors = stockComponents($this->motor, 1);
+        // 干扰件：与该产品 BOM 无关的独立零件型号在库件
+        $stranger = Component::create(['code' => 'CMP-STRANGER', 'name' => 'BOM 外零件']);
+        $strangerUnits = stockComponents($stranger, 1);
+
+        $response = $this->postJson('/api/v1/material/production', [
+            'product_id' => $this->product->id,
+            'serial_no' => 'PRD-BOM-OFFBOM',
+            'component_unit_ids' => [...$washers, ...$motors, ...$strangerUnits],
+        ])->assertOk()->assertJsonPath('code', 4011);
+
+        // 明细只含 BOM 外件；BOM 内消耗件与产出零残留
+        $unusable = $response->json('data.unusable_unit_ids');
+        expect($unusable)->toBe($strangerUnits)
+            ->and(ComponentUnit::whereIn('id', [...$washers, ...$motors, ...$strangerUnits])
+                ->where('status', ComponentUnit::STATUS_IN_STOCK)->count())->toBe(5)
+            ->and(ProductUnit::where('serial_no', 'PRD-BOM-OFFBOM')->exists())->toBeFalse()
+            ->and(ProductionRecord::where('product_id', $this->product->id)->doesntExist())->toBeTrue();
+    });
+
+    it('无型号前缀产出编号被参数校验拒绝（422/1001，与入库编号同一规则）', function (): void {
         $washers = stockComponents($this->washer, 3);
         $motors = stockComponents($this->motor, 1);
 
         $this->postJson('/api/v1/material/production', [
             'product_id' => $this->product->id,
-            'serial_no' => 'DUP-PROD',
+            'serial_no' => 'BARE-OUTPUT-0001',
+            'component_unit_ids' => [...$washers, ...$motors],
+        ])->assertStatus(422)->assertJsonPath('code', 1001);
+
+        expect(ProductUnit::where('serial_no', 'BARE-OUTPUT-0001')->exists())->toBeFalse()
+            ->and(ComponentUnit::whereIn('id', [...$washers, ...$motors])
+                ->where('status', ComponentUnit::STATUS_IN_STOCK)->count())->toBe(4);
+    });
+
+    it('产出编号重复返回 409/3002（全局编号域）', function (): void {
+        ProductUnit::create(['product_id' => $this->product->id, 'serial_no' => 'PRD-BOM-DUP']);
+        $washers = stockComponents($this->washer, 3);
+        $motors = stockComponents($this->motor, 1);
+
+        $this->postJson('/api/v1/material/production', [
+            'product_id' => $this->product->id,
+            'serial_no' => 'PRD-BOM-DUP',
             'component_unit_ids' => [...$washers, ...$motors],
         ])->assertConflict()->assertJsonPath('code', 3002);
     });

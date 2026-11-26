@@ -91,23 +91,31 @@ class ProductionService
             throw new BusinessException(ErrorCode::Conflict, '库存实例编号已存在', 409);
         }
 
-        // 消耗件全部在库：listInStockByIds 只回在库件，缺失者即不可用
-        $unitIds = array_values(array_unique($data['component_unit_ids']));
-        $usable = $this->componentUnits->listInStockByIds($unitIds);
-        $unusableIds = array_values(array_diff($unitIds, $usable->pluck('id')->all()));
-        if ($unusableIds !== []) {
-            throw new BusinessException(
-                ErrorCode::UnusableConsumption,
-                '所选零件件不存在或不在库，无法用于生产',
-                200,
-                ['unusable_unit_ids' => $unusableIds],
-            );
-        }
-
-        // BOM 足额校验（多领允许，缺口拒绝）：按零件型号聚合需求与实供
+        // BOM 型号集合：归属校验与足额校验共用
         $requirements = $this->positions->listByProduct($product->id)
             ->groupBy('component_id')
             ->map(fn (Collection $group) => $group->sum('quantity'));
+        $bomComponentIds = $requirements->keys();
+
+        // 消耗件全部在库且属于该产品 BOM：listInStockByIds 只回在库件，
+        // 缺失者即不可用；BOM 外型号同样 4011（前端候选按 BOM 过滤的后端强制，防直发 API 消耗无关零件）
+        $unitIds = array_values(array_unique($data['component_unit_ids']));
+        $usable = $this->componentUnits->listInStockByIds($unitIds);
+        $unusableIds = array_values(array_diff($unitIds, $usable->pluck('id')->all()));
+        $offBomIds = $usable
+            ->filter(fn (ComponentUnit $unit) => ! $bomComponentIds->contains($unit->component_id))
+            ->pluck('id')
+            ->all();
+        if ($unusableIds !== [] || $offBomIds !== []) {
+            throw new BusinessException(
+                ErrorCode::UnusableConsumption,
+                '所选零件不存在、不在库或不属于该产品 BOM，无法用于生产',
+                200,
+                ['unusable_unit_ids' => array_values(array_unique([...$unusableIds, ...$offBomIds]))],
+            );
+        }
+
+        // BOM 足额校验（同型号多领允许，缺口拒绝）：按零件型号聚合需求与实供
         $provided = $usable->groupBy('component_id')->map(fn (Collection $group) => $group->count());
         $shortage = [];
         foreach ($requirements as $componentId => $required) {

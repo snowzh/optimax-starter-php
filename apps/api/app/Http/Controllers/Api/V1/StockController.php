@@ -3,9 +3,10 @@
 namespace App\Http\Controllers\Api\V1;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\ComponentUnitQueryRequest;
 use App\Http\Requests\MovementQueryRequest;
 use App\Http\Requests\OutUnitRequest;
-use App\Http\Requests\StockUnitQueryRequest;
+use App\Http\Requests\ProductUnitQueryRequest;
 use App\Http\Requests\StoreComponentUnitRequest;
 use App\Http\Requests\StoreProductUnitRequest;
 use App\Http\Resources\ComponentUnitResource;
@@ -28,7 +29,7 @@ class StockController extends Controller
     ) {}
 
     /** GET /api/v1/material/product-units */
-    public function productUnitsIndex(StockUnitQueryRequest $request): JsonResponse
+    public function productUnitsIndex(ProductUnitQueryRequest $request): JsonResponse
     {
         return ApiResponse::success(
             $this->paginatePayload($this->stock->listProductUnits($request->validated()), ProductUnitResource::class),
@@ -54,7 +55,7 @@ class StockController extends Controller
     }
 
     /** GET /api/v1/material/component-units */
-    public function componentUnitsIndex(StockUnitQueryRequest $request): JsonResponse
+    public function componentUnitsIndex(ComponentUnitQueryRequest $request): JsonResponse
     {
         return ApiResponse::success(
             $this->paginatePayload($this->stock->listComponentUnits($request->validated()), ComponentUnitResource::class),
