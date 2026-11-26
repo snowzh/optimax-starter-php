@@ -24,6 +24,11 @@ export default defineConfig({
       '@@': join(__dirname, 'src', '.umi'),
     },
   },
+  // fsevents 是 @umijs/utils → chokidar@3 的 darwin 可选依赖（native .node 文件），
+  // vi.mock 拦不住优化器静态扫描，须排除出浏览器依赖预打包（chokidar@4 已移除该依赖，umi 升级后可删）
+  optimizeDeps: {
+    exclude: ['fsevents'],
+  },
   test: {
     browser: {
       enabled: true,
