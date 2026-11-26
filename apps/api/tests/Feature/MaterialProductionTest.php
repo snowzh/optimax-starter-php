@@ -112,9 +112,9 @@ describe('提交生产', function (): void {
         ])->assertOk()->assertJsonPath('code', 4011);
 
         expect($response->json('data.unusable_unit_ids'))->toContain($outMotor->id, 999999)
-            // 零残留：无产出件、无记录、消耗件仍在库
+            // 零残留：无产出件、无本域记录、消耗件仍在库（count 定向——演示种子随 db:seed 落库）
             ->and(ProductUnit::where('serial_no', 'PRD-BOM-FAIL1')->exists())->toBeFalse()
-            ->and(ProductionRecord::count())->toBe(0)
+            ->and(ProductionRecord::where('product_id', $this->product->id)->count())->toBe(0)
             ->and(ComponentUnit::whereIn('id', $washers)->where('status', ComponentUnit::STATUS_IN_STOCK)->count())->toBe(3);
     });
 
@@ -229,7 +229,7 @@ describe('记录查询', function (): void {
             'component_unit_ids' => [...$washers, ...$motors],
         ])->assertOk();
 
-        $list = $this->getJson('/api/v1/material/production')
+        $list = $this->getJson('/api/v1/material/production?keyword=PRD-BOM-Q1')
             ->assertOk()
             ->assertJsonPath('data.total', 1)
             ->assertJsonPath('data.items.0.product_unit.serial_no', 'PRD-BOM-Q1')

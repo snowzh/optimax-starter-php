@@ -55,7 +55,8 @@ describe('产品型号', function (): void {
         Product::create(['code' => 'PRD-P1', 'name' => '甲']);
         Product::create(['code' => 'PRD-P2', 'name' => '乙']);
 
-        $this->getJson('/api/v1/material/products?page=1&page_size=1')
+        // keyword 定向：演示种子随 db:seed 落库，全局量断言不再可靠
+        $this->getJson('/api/v1/material/products?page=1&page_size=1&keyword=PRD-P')
             ->assertOk()
             ->assertJsonPath('data.total', 2)
             ->assertJsonPath('data.page_size', 1)
