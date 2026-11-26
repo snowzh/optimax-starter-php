@@ -17,6 +17,31 @@ permissions:
   contents: read
 
 jobs:
+  # ── 分支历史护栏（spec branch-history-governance）：
+  #    dev 全历史必须已含于 main（merge-base == dev HEAD），分叉即红。
+  #    squash 发布会致 main 产生 dev 不含的 SHA 永久分叉——曾靠「快照缝合」绕过（#6/#10/#14），
+  #    现以护栏机器发现，处置流程见 specs/branch-history-governance/tasks.md ──
+  branch-align:
+    name: branch-align（main 恒含 dev 历史）
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        with:
+          fetch-depth: 0
+      - name: 校验 dev 全历史已含于 main
+        run: |
+          git fetch origin dev main --quiet
+          BASE="$(git merge-base origin/main origin/dev)"
+          DEV="$(git rev-parse origin/dev)"
+          echo "merge-base(main, dev) = ${BASE}"
+          echo "origin/dev HEAD       = ${DEV}"
+          if [ "$BASE" != "$DEV" ]; then
+            echo "::error::dev 含 main 没有的历史（分叉）——main 必须恒含 dev 全历史。"
+            echo "::error::处置：按 specs/branch-history-governance/ 治理节对齐（发布一律 Merge Commit，禁 squash）。"
+            exit 1
+          fi
+          echo "✓ main 已含 dev 全历史（零分叉）"
+
   # ── 后端门禁：Pint → Pest（pgsql service）→ 迁移可执行 → api 镜像构建 ──
   api:
     name: api（Pint / Pest / migrate / image）
